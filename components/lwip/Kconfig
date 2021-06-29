@@ -7,6 +7,15 @@ menu "LWIP"
             The default name this device will report to other devices on the network.
             Could be updated at runtime with esp_netif_set_hostname()
 
+    config LWIP_NETIF_API
+        bool "Enable usage of standard POSIX APIs in LWIP"
+        default n
+        help
+            If this feature is enabled, standard POSIX APIs: if_indextoname(), if_nametoindex()
+            could be used to convert network interface index to name
+            instead of IDF specific esp-netif APIs (such as esp_netif_get_netif_impl_name())
+
+
     config LWIP_DNS_SUPPORT_MDNS_QUERIES
         bool "Enable mDNS queries in resolving host name"
         default y
@@ -699,6 +708,29 @@ menu "LWIP"
         help
             Enable Microsoft Point-to-Point Encryption (MPPE) support
 
+    config LWIP_ENABLE_LCP_ECHO
+        bool "Enable LCP ECHO"
+        depends on LWIP_PPP_SUPPORT
+        default n
+        help
+            Enable LCP echo keepalive requests
+
+    config LWIP_LCP_ECHOINTERVAL
+        int "Echo interval (s)"
+        range 0 1000000
+        depends on LWIP_ENABLE_LCP_ECHO
+        default 3
+        help
+            Interval in seconds between keepalive LCP echo requests, 0 to disable.
+
+    config LWIP_LCP_MAXECHOFAILS
+        int "Maximum echo failures"
+        range 0 100000
+        depends on LWIP_ENABLE_LCP_ECHO
+        default 3
+        help
+            Number of consecutive unanswered echo requests before failure is indicated.
+
     config LWIP_PPP_DEBUG_ON
         bool "Enable PPP debug log output"
         depends on LWIP_PPP_SUPPORT
@@ -848,55 +880,68 @@ menu "LWIP"
 
     endmenu # Hooks
 
-    menu "Debug"
+    menuconfig LWIP_DEBUG
+        bool "Enable LWIP Debug"
+        default n
 
-        config LWIP_NETIF_DEBUG
-            bool "Enable netif debug messages"
-            default n
+    config LWIP_NETIF_DEBUG
+        bool "Enable netif debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_PBUF_DEBUG
-            bool "Enable pbuf debug messages"
-            default n
+    config LWIP_PBUF_DEBUG
+        bool "Enable pbuf debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_ETHARP_DEBUG
-            bool "Enable etharp debug messages"
-            default n
+    config LWIP_ETHARP_DEBUG
+        bool "Enable etharp debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_API_LIB_DEBUG
-            bool "Enable api lib debug messages"
-            default n
+    config LWIP_API_LIB_DEBUG
+        bool "Enable api lib debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_SOCKETS_DEBUG
-            bool "Enable socket debug messages"
-            default n
+    config LWIP_SOCKETS_DEBUG
+        bool "Enable socket debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_IP_DEBUG
-            bool "Enable IP debug messages"
-            default n
+    config LWIP_IP_DEBUG
+        bool "Enable IP debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_ICMP_DEBUG
-            bool "Enable ICMP debug messages"
-            default n
+    config LWIP_ICMP_DEBUG
+        bool "Enable ICMP debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_DHCP_STATE_DEBUG
-            bool "Enable DHCP state tracking"
-            default n
+    config LWIP_DHCP_STATE_DEBUG
+        bool "Enable DHCP state tracking"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_DHCP_DEBUG
-            bool "Enable DHCP debug messages"
-            default n
+    config LWIP_DHCP_DEBUG
+        bool "Enable DHCP debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_IP6_DEBUG
-            bool "Enable IP6 debug messages"
-            default n
+    config LWIP_IP6_DEBUG
+        bool "Enable IP6 debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_ICMP6_DEBUG
-            bool "Enable ICMP6 debug messages"
-            default n
+    config LWIP_ICMP6_DEBUG
+        bool "Enable ICMP6 debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-        config LWIP_TCP_DEBUG
-            bool "Enable TCP debug messages"
-            default n
+    config LWIP_TCP_DEBUG
+        bool "Enable TCP debug messages"
+        depends on LWIP_DEBUG
+        default n
 
-    endmenu #debug
 endmenu

@@ -64,7 +64,7 @@ endfunction()
 #
 function(__build_get_idf_git_revision)
     idf_build_get_property(idf_path IDF_PATH)
-    git_describe(idf_ver_git "${idf_path}")
+    git_describe(idf_ver_git "${idf_path}" "--match=v*.*")
     if(EXISTS "${idf_path}/version.txt")
         file(STRINGS "${idf_path}/version.txt" idf_ver_t)
         set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${idf_path}/version.txt")
@@ -112,10 +112,13 @@ function(__build_set_default_build_specifications)
 
     list(APPEND cxx_compile_options "-std=gnu++11")
 
+    list(APPEND link_options "-Wl,--gc-sections")
+
     idf_build_set_property(COMPILE_DEFINITIONS "${compile_definitions}" APPEND)
     idf_build_set_property(COMPILE_OPTIONS "${compile_options}" APPEND)
     idf_build_set_property(C_COMPILE_OPTIONS "${c_compile_options}" APPEND)
     idf_build_set_property(CXX_COMPILE_OPTIONS "${cxx_compile_options}" APPEND)
+    idf_build_set_property(LINK_OPTIONS "${link_options}" APPEND)
 endfunction()
 
 #
@@ -127,9 +130,11 @@ function(__build_init idf_path)
     # Must be global so as to be accessible from any subdirectory in custom projects.
     add_library(__idf_build_target STATIC IMPORTED GLOBAL)
 
-    set_default(python "python")
+    # Set the Python path (which may be passed in via -DPYTHON=) and store in a build property
+    set_default(PYTHON "python")
+    file(TO_CMAKE_PATH ${PYTHON} PYTHON)
+    idf_build_set_property(PYTHON ${PYTHON})
 
-    idf_build_set_property(PYTHON ${python})
     idf_build_set_property(IDF_PATH ${idf_path})
 
     idf_build_set_property(__PREFIX idf)
@@ -270,8 +275,12 @@ function(__build_check_python)
         message(STATUS "Checking Python dependencies...")
         execute_process(COMMAND "${python}" "${idf_path}/tools/check_python_dependencies.py"
             RESULT_VARIABLE result)
-        if(NOT result EQUAL 0)
+        if(result EQUAL 1)
+            # check_python_dependencies returns error code 1 on failure
             message(FATAL_ERROR "Some Python dependencies must be installed. Check above message for details.")
+        elseif(NOT result EQUAL 0)
+            # means check_python_dependencies.py failed to run at all, result should be an error message
+            message(FATAL_ERROR "Failed to run Python dependency check. Python: ${python}, Error: ${result}")
         endif()
     endif()
 endfunction()
@@ -405,6 +414,70 @@ macro(idf_build_process target)
         idf_build_set_property(__COMPONENT_REQUIRES_COMMON ${target} APPEND)
     else()
         idf_build_set_property(__COMPONENT_REQUIRES_COMMON "")
+    endif()
+
+    # Call for component manager to download dependencies for all components
+    idf_build_set_property(IDF_COMPONENT_MANAGER "$ENV{IDF_COMPONENT_MANAGER}")
+    idf_build_get_property(idf_component_manager IDF_COMPONENT_MANAGER)
+    if(idf_component_manager)
+        if(idf_component_manager EQUAL "0")
+            message(VERBOSE "IDF Component manager was explicitly disabled by setting IDF_COMPONENT_MANAGER=0")
+        elseif(idf_component_manager EQUAL "1")
+            set(managed_components_list_file ${build_dir}/managed_components_list.temp.cmake)
+            set(local_components_list_file ${build_dir}/local_components_list.temp.yml)
+
+            set(__contents "components:\n")
+            idf_build_get_property(__component_targets __COMPONENT_TARGETS)
+            foreach(__component_target ${__component_targets})
+                __component_get_property(__component_name ${__component_target} COMPONENT_NAME)
+                __component_get_property(__component_dir ${__component_target} COMPONENT_DIR)
+                set(__contents "${__contents}  - name: \"${__component_name}\"\n    path: \"${__component_dir}\"\n")
+            endforeach()
+
+            file(WRITE ${local_components_list_file} "${__contents}")
+
+            # Call for the component manager to prepare remote dependencies
+            execute_process(COMMAND ${PYTHON}
+                "-m"
+                "idf_component_manager.prepare_components"
+                "--project_dir=${project_dir}"
+                "prepare_dependencies"
+                "--local_components_list_file=${local_components_list_file}"
+                "--managed_components_list_file=${managed_components_list_file}"
+                RESULT_VARIABLE result
+                ERROR_VARIABLE error)
+
+            if(NOT result EQUAL 0)
+                message(FATAL_ERROR "${error}")
+            endif()
+
+            include(${managed_components_list_file})
+
+            # Add managed components to list of all components
+            # `managed_components` contains the list of components installed by the component manager
+            # It is defined in the temporary managed_components_list_file file
+            set(__COMPONENTS "${__COMPONENTS};${managed_components}")
+
+            file(REMOVE ${managed_components_list_file})
+            file(REMOVE ${local_components_list_file})
+        else()
+            message(WARNING "IDF_COMPONENT_MANAGER environment variable is set to unknown value "
+                    "\"${idf_component_manager}\". If you want to use component manager set it to 1.")
+        endif()
+    else()
+        idf_build_get_property(__component_targets __COMPONENT_TARGETS)
+        set(__components_with_manifests "")
+        foreach(__component_target ${__component_targets})
+            __component_get_property(__component_dir ${__component_target} COMPONENT_DIR)
+            if(EXISTS "${__component_dir}/idf_component.yml")
+                set(__components_with_manifests "${__components_with_manifests}\t${__component_dir}\n")
+            endif()
+        endforeach()
+
+        if(NOT "${__components_with_manifests}" STREQUAL "")
+            message(WARNING "\"idf_component.yml\" file was found for components:\n${__components_with_manifests}"
+                    "However, the component manager is not enabled.")
+        endif()
     endif()
 
     # Perform early expansion of component CMakeLists.txt in CMake scripting mode.

@@ -31,7 +31,7 @@ typedef struct {
 #define TIMER_INFO_INIT(TG, TID)    {.timer_group = (TG), .timer_idx = (TID),}
 
 static timer_info_t timer_info[] = {
-#if !CONFIG_IDF_TARGET_ESP32C3
+#if !CONFIG_IDF_TARGET_ESP32C3 && !CONFIG_IDF_TARGET_ESP32C6
     TIMER_INFO_INIT(TIMER_GROUP_0, TIMER_0),
     TIMER_INFO_INIT(TIMER_GROUP_0, TIMER_1),
     TIMER_INFO_INIT(TIMER_GROUP_1, TIMER_0),

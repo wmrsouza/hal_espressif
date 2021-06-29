@@ -2212,6 +2212,9 @@ static void _mdns_dup_interface(mdns_if_t tcpip_if)
 {
     uint8_t i;
     mdns_if_t other_if = _mdns_get_other_if (tcpip_if);
+    if (other_if == MDNS_IF_MAX) {
+        return; // no other interface found
+    }
     for (i=0; i<MDNS_IP_PROTOCOL_MAX; i++) {
         if (_mdns_server->interfaces[other_if].pcbs[i].pcb) {
             //stop this interface and mark as dup
@@ -4815,6 +4818,10 @@ esp_err_t mdns_query_a(const char * name, uint32_t timeout, esp_ip4_addr_t * add
         return ESP_ERR_INVALID_ARG;
     }
 
+    if (strstr(name, ".local")) {
+        ESP_LOGW(TAG, "Please note that hostname must not contain domain name, as mDNS uses '.local' domain");
+    }
+
     err = mdns_query(name, NULL, NULL, MDNS_TYPE_A, timeout, 1, &result);
 
     if (err) {
@@ -4847,6 +4854,10 @@ esp_err_t mdns_query_aaaa(const char * name, uint32_t timeout, esp_ip6_addr_t * 
 
     if (_str_null_or_empty(name)) {
         return ESP_ERR_INVALID_ARG;
+    }
+
+    if (strstr(name, ".local")) {
+        ESP_LOGW(TAG, "Please note that hostname must not contain domain name, as mDNS uses '.local' domain");
     }
 
     err = mdns_query(name, NULL, NULL, MDNS_TYPE_AAAA, timeout, 1, &result);

@@ -28,10 +28,11 @@ if(BOOTLOADER_BUILD)
         rom_linker_script("spiflash")
 
     elseif(target STREQUAL "esp32s3")
-        rom_linker_script("newlib-funcs")
-        rom_linker_script("spiflash")
+        rom_linker_script("newlib")
 
     elseif(target STREQUAL "esp32c3")
+        rom_linker_script("newlib")
+    elseif(target STREQUAL "esp32c6")
         rom_linker_script("newlib")
     endif()
 
@@ -77,15 +78,22 @@ else() # Regular app build
         target_sources(${COMPONENT_LIB} PRIVATE "esp32s2/usb_descriptors.c")
 
     elseif(target STREQUAL "esp32s3")
-        rom_linker_script("newlib-funcs")
-        rom_linker_script("newlib-data")
-        rom_linker_script("spiflash")
+        rom_linker_script("newlib")
+        rom_linker_script("version")
 
         if(CONFIG_NEWLIB_NANO_FORMAT)
             rom_linker_script("newlib-nano")
         endif()
 
     elseif(target STREQUAL "esp32c3")
+        rom_linker_script("newlib")
+        rom_linker_script("version")
+
+        if(CONFIG_NEWLIB_NANO_FORMAT)
+            rom_linker_script("newlib-nano")
+        endif()
+
+    elseif(target STREQUAL "esp32c6")
         rom_linker_script("newlib")
         rom_linker_script("version")
 

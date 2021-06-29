@@ -165,8 +165,7 @@ void wpa_ap_get_peer_spp_msg(void *sm_data, bool *spp_cap, bool *spp_req)
 
 bool  wpa_deattach(void)
 {
-    /* TODO: handle WPA2 */
-    // esp_wifi_sta_wpa2_ent_disable();
+    esp_wifi_sta_wpa2_ent_disable();
     wpa_sm_deinit();
     return true;
 }
@@ -178,6 +177,7 @@ void  wpa_sta_connect(uint8_t *bssid)
     wpa_config_profile();
     ret = wpa_config_bss(bssid);
     WPA_ASSERT(ret == 0);
+    (void)ret;
 }
 
 int wpa_parse_wpa_ie_wrapper(const u8 *wpa_ie, size_t wpa_ie_len, wifi_wpa_ie_t *data)

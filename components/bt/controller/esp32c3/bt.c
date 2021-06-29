@@ -40,7 +40,7 @@
 #include "soc/rtc.h"
 #include "soc/rtc_cntl_reg.h"
 #include "soc/soc_memory_layout.h"
-#include "esp_clk.h"
+#include "esp32c3/clk.h"
 #include "esp_coexist_internal.h"
 #include "esp32c3/rom/rom_layout.h"
 #include "esp_timer.h"
@@ -1054,7 +1054,8 @@ esp_err_t esp_bt_controller_init(esp_bt_controller_config_t *cfg)
         s_lp_cntl.lpclk_sel = BTDM_LPCLK_SEL_XTAL; // set default value
 #endif
 
-        bool select_src_ret, set_div_ret;
+        bool select_src_ret __attribute__((unused));
+        bool set_div_ret __attribute__((unused));
         if (s_lp_cntl.lpclk_sel == BTDM_LPCLK_SEL_XTAL) {
             select_src_ret = btdm_lpclk_select_src(BTDM_LPCLK_SEL_XTAL);
             set_div_ret = btdm_lpclk_set_div(rtc_clk_xtal_freq_get() * 2);

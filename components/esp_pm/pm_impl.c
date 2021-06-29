@@ -60,7 +60,10 @@
 #include "esp32c3/clk.h"
 #include "esp32c3/pm.h"
 #include "driver/gpio.h"
-#include "esp_private/sleep_modes.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/clk.h"
+#include "esp32c6/pm.h"
+#include "driver/gpio.h"
 #endif
 
 #define MHZ (1000000)
@@ -97,6 +100,9 @@
 #elif CONFIG_IDF_TARGET_ESP32C3
 #define REF_CLK_DIV_MIN 2
 #define DEFAULT_CPU_FREQ CONFIG_ESP32C3_DEFAULT_CPU_FREQ_MHZ
+#elif CONFIG_IDF_TARGET_ESP32C6
+#define REF_CLK_DIV_MIN 2
+#define DEFAULT_CPU_FREQ CONFIG_ESP32C6_DEFAULT_CPU_FREQ_MHZ
 #endif
 
 #ifdef CONFIG_PM_PROFILING
@@ -231,6 +237,8 @@ esp_err_t esp_pm_configure(const void* vconfig)
     const esp_pm_config_esp32s3_t* config = (const esp_pm_config_esp32s3_t*) vconfig;
 #elif CONFIG_IDF_TARGET_ESP32C3
     const esp_pm_config_esp32c3_t* config = (const esp_pm_config_esp32c3_t*) vconfig;
+#elif CONFIG_IDF_TARGET_ESP32C6
+    const esp_pm_config_esp32c6_t* config = (const esp_pm_config_esp32c6_t*) vconfig;
 #endif
 
 #ifndef CONFIG_FREERTOS_USE_TICKLESS_IDLE
@@ -291,7 +299,7 @@ esp_err_t esp_pm_configure(const void* vconfig)
 
     portENTER_CRITICAL(&s_switch_lock);
 
-    bool res = false;
+    bool res __attribute__((unused));
     res = rtc_clk_cpu_freq_mhz_to_config(max_freq_mhz, &s_cpu_freq_by_mode[PM_MODE_CPU_MAX]);
     assert(res);
     res = rtc_clk_cpu_freq_mhz_to_config(apb_max_freq, &s_cpu_freq_by_mode[PM_MODE_APB_MAX]);
@@ -307,7 +315,7 @@ esp_err_t esp_pm_configure(const void* vconfig)
     esp_sleep_enable_gpio_switch(config->light_sleep_enable);
 #endif
 
-#if CONFIG_ESP_SYSTEM_PM_POWER_DOWN_CPU && SOC_PM_SUPPORT_CPU_PD
+#if CONFIG_PM_POWER_DOWN_CPU_IN_LIGHT_SLEEP && SOC_PM_SUPPORT_CPU_PD
     esp_err_t ret = esp_sleep_cpu_pd_low_init(config->light_sleep_enable);
     if (config->light_sleep_enable && ret != ESP_OK) {
         ESP_LOGW(TAG, "Failed to enable CPU power down during light sleep.");
@@ -337,6 +345,8 @@ esp_err_t esp_pm_get_configuration(void* vconfig)
     esp_pm_config_esp32s3_t* config = (esp_pm_config_esp32s3_t*) vconfig;
 #elif CONFIG_IDF_TARGET_ESP32C3
     esp_pm_config_esp32c3_t* config = (esp_pm_config_esp32c3_t*) vconfig;
+#elif CONFIG_IDF_TARGET_ESP32C6
+    esp_pm_config_esp32c6_t* config = (esp_pm_config_esp32c6_t*) vconfig;
 #endif
 
     portENTER_CRITICAL(&s_switch_lock);
@@ -580,12 +590,10 @@ esp_err_t esp_pm_unregister_skip_light_sleep_callback(skip_light_sleep_cb_t cb)
 
 static inline bool IRAM_ATTR periph_should_skip_light_sleep(void)
 {
-    if (s_light_sleep_en) {
-        for (int i = 0; i < PERIPH_SKIP_LIGHT_SLEEP_NO; i++) {
-            if (s_periph_skip_light_sleep_cb[i]) {
-                if (s_periph_skip_light_sleep_cb[i]() == true) {
-                    return true;
-                }
+    for (int i = 0; i < PERIPH_SKIP_LIGHT_SLEEP_NO; i++) {
+        if (s_periph_skip_light_sleep_cb[i]) {
+            if (s_periph_skip_light_sleep_cb[i]() == true) {
+                return true;
             }
         }
     }
@@ -681,15 +689,17 @@ void esp_pm_impl_dump_stats(FILE* out)
 
     time_in_mode[cur_mode] += now - last_mode_change_time;
 
-    fprintf(out, "Mode stats:\n");
+    fprintf(out, "\nMode stats:\n");
+    fprintf(out, "%-8s  %-10s  %-10s  %-10s\n", "Mode", "CPU_freq", "Time(us)", "Time(%)");
     for (int i = 0; i < PM_MODE_COUNT; ++i) {
         if (i == PM_MODE_LIGHT_SLEEP && !s_light_sleep_en) {
             /* don't display light sleep mode if it's not enabled */
             continue;
         }
-        fprintf(out, "%8s  %3dM %12lld  %2d%%\n",
+        fprintf(out, "%-8s  %-3dM%-7s %-10lld  %-2d%%\n",
                 s_mode_names[i],
                 s_cpu_freq_by_mode[i].freq_mhz,
+                "",                                     //Empty space to align columns
                 time_in_mode[i],
                 (int) (time_in_mode[i] * 100 / now));
     }
@@ -763,6 +773,8 @@ void esp_pm_impl_init(void)
     esp_pm_config_esp32s3_t cfg = {
 #elif CONFIG_IDF_TARGET_ESP32C3
     esp_pm_config_esp32c3_t cfg = {
+#elif CONFIG_IDF_TARGET_ESP32C6
+    esp_pm_config_esp32c6_t cfg = {
 #endif
         .max_freq_mhz = DEFAULT_CPU_FREQ,
         .min_freq_mhz = xtal_freq,

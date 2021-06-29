@@ -55,7 +55,7 @@ menu "SPI Flash driver"
 
     config SPI_FLASH_ROM_IMPL
         bool "Use esp_flash implementation in ROM"
-        depends on IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32C3
+        depends on IDF_TARGET_ESP32S3 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32C6
         default n
         help
             Enable this flag to use new SPI flash driver functions from ROM instead of ESP-IDF.
@@ -157,7 +157,7 @@ menu "SPI Flash driver"
             CAUTION: If you want to OTA to an app with this feature turned on, please make
             sure the bootloader has the support for it. (later than IDF v4.3)
 
-            Auto-suspend feature is only supported by XMC chip.
+            Auto-suspend feature only supported by XMC chip.
             If you are using an official module, please contact Espressif Business support.
             Also reading auto suspend part in `SPI Flash API` document before you enable this function.
 

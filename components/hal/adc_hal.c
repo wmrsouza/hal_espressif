@@ -19,7 +19,7 @@
 #include <sys/param.h>
 
 
-#if CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
 #include "soc/gdma_channel.h"
 #include "soc/soc.h"
 #include "esp_rom_sys.h"
@@ -86,7 +86,7 @@ static uint32_t read_cal_channel(adc_ll_num_t adc_n, int channel)
     return (uint32_t)adc_ll_rtc_get_convert_value(adc_n);
 }
 
-#elif CONFIG_IDF_TARGET_ESP32C3
+#elif CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
 static void cal_setup(adc_ll_num_t adc_n, adc_channel_t channel, adc_atten_t atten, bool internal_gnd)
 {
     adc_ll_onetime_sample_enable(ADC_NUM_1, false);
@@ -186,7 +186,7 @@ uint32_t adc_hal_self_calibration(adc_ll_num_t adc_n, adc_channel_t channel, adc
 }
 #endif //SOC_ADC_HW_CALIBRATION_V1
 
-#if CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
 //This feature is currently supported on ESP32C3, will be supported on other chips soon
 /*---------------------------------------------------------------
                     DMA setting

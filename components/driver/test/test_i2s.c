@@ -15,7 +15,7 @@
 #include "unity.h"
 #include "math.h"
 #include "esp_rom_gpio.h"
-
+#if !CONFIG_IDF_TARGET_ESP32C6
 #if !TEMPORARY_DISABLED_FOR_TARGETS(ESP32S3, ESP32C3)
 
 #define SAMPLE_RATE     (36000)
@@ -207,7 +207,7 @@ TEST_CASE("I2S Loopback test(master tx and rx)", "[i2s]")
     i2s_driver_uninstall(I2S_NUM_0);
 }
 
-#if !DISABLED_FOR_TARGETS(ESP32S2)
+#if !DISABLED_FOR_TARGETS(ESP32S2, ESP32C6)
 /* ESP32S2 has only single I2S port and hence following test cases are not applicable */
 TEST_CASE("I2S adc test", "[i2s]")
 {
@@ -520,4 +520,5 @@ TEST_CASE("I2S APLL clock variation test", "[i2s]")
     TEST_ASSERT(initial_size == esp_get_free_heap_size());
 }
 
+#endif
 #endif

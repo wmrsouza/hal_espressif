@@ -22,24 +22,23 @@
 #include "esp_log.h"
 #include "esp_system.h"
 
-#include "esp_rom_uart.h"
-
+#include "esp_efuse.h"
+#include "cache_err_int.h"
 #include "esp_clk_internal.h"
+
 #include "esp_rom_efuse.h"
+#include "esp_rom_uart.h"
 #include "esp_rom_sys.h"
 #include "sdkconfig.h"
 
 #if CONFIG_IDF_TARGET_ESP32
 #include "soc/dport_reg.h"
 #include "esp32/rtc.h"
-#include "esp32/cache_err_int.h"
 #include "esp32/rom/cache.h"
 #include "esp32/rom/rtc.h"
 #include "esp32/spiram.h"
 #elif CONFIG_IDF_TARGET_ESP32S2
 #include "esp32s2/rtc.h"
-#include "esp32s2/brownout.h"
-#include "esp32s2/cache_err_int.h"
 #include "esp32s2/rom/cache.h"
 #include "esp32s2/rom/rtc.h"
 #include "esp32s2/spiram.h"
@@ -47,8 +46,6 @@
 #include "esp32s2/memprot.h"
 #elif CONFIG_IDF_TARGET_ESP32S3
 #include "esp32s3/rtc.h"
-#include "esp32s3/brownout.h"
-#include "esp32s3/cache_err_int.h"
 #include "esp32s3/rom/cache.h"
 #include "esp32s3/rom/rtc.h"
 #include "esp32s3/spiram.h"
@@ -59,11 +56,17 @@
 #include "soc/system_reg.h"
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rtc.h"
-#include "esp32c3/cache_err_int.h"
-#include "esp32c3/rom/cache.h"
+#include "esp32s3/rom/cache.h"
 #include "esp32c3/rom/rtc.h"
 #include "soc/cache_memory.h"
 #include "esp32c3/memprot.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rtc.h"
+#include "esp32c6/cache_err_int.h"
+#include "esp32c6/rom/cache.h"
+#include "esp32c6/rom/rtc.h"
+#include "soc/cache_memory.h"
+#include "esp32c6/memprot.h"
 #endif
 
 #include "bootloader_flash_config.h"
@@ -89,14 +92,33 @@
 #if CONFIG_APP_BUILD_TYPE_ELF_RAM
 #if CONFIG_IDF_TARGET_ESP32
 #include "esp32/rom/spi_flash.h"
-#elif CONFIG_IDF_TARGET_ESP32S2
+#endif // CONFIG_IDF_TARGET_ESP32
+#if CONFIG_IDF_TARGET_ESP32S2
 #include "esp32s2/rom/spi_flash.h"
-#elif CONFIG_IDF_TARGET_ESP32S3
+#endif // CONFIG_IDF_TARGET_ESP32S2
+#if CONFIG_IDF_TARGET_ESP32S3
 #include "esp32s3/rom/spi_flash.h"
-#elif CONFIG_IDF_TARGET_ESP32C3
+#endif // CONFIG_IDF_TARGET_ESP32S3
+#if CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rom/spi_flash.h"
-#endif
+#endif // CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/spi_flash.h"
+#endif // CONFIG_IDF_TARGET_ESP32C6
 #endif // CONFIG_APP_BUILD_TYPE_ELF_RAM
+
+// Set efuse ROM_LOG_MODE on first boot
+//
+// For CONFIG_BOOT_ROM_LOG_ALWAYS_ON (default) or undefined (ESP32), leave
+// ROM_LOG_MODE undefined (no need to call this function during startup)
+#if CONFIG_BOOT_ROM_LOG_ALWAYS_OFF
+#define ROM_LOG_MODE ESP_EFUSE_ROM_LOG_ALWAYS_OFF
+#elif CONFIG_BOOT_ROM_LOG_ON_GPIO_LOW
+#define ROM_LOG_MODE ESP_EFUSE_ROM_LOG_ON_GPIO_LOW
+#elif CONFIG_BOOT_ROM_LOG_ON_GPIO_HIGH
+#define ROM_LOG_MODE ESP_EFUSE_ROM_LOG_ON_GPIO_HIGH
+#endif
+
 
 #include "esp_private/startup_internal.h"
 #include "esp_private/system_internal.h"
@@ -185,51 +207,55 @@ void IRAM_ATTR call_start_cpu1(void)
 
 static void start_other_core(void)
 {
-    // If not the single core variant of ESP32 - check this since there is
+    esp_chip_info_t chip_info;
+    esp_chip_info(&chip_info);
+
+    // If not the single core variant of a target - check this since there is
     // no separate soc_caps.h for the single core variant.
-    bool is_single_core = false;
-#if CONFIG_IDF_TARGET_ESP32
-    is_single_core = REG_GET_BIT(EFUSE_BLK0_RDATA3_REG, EFUSE_RD_CHIP_VER_DIS_APP_CPU);
-#endif
-    if (!is_single_core) {
-        ESP_EARLY_LOGI(TAG, "Starting app cpu, entry point is %p", call_start_cpu1);
+    if (!(chip_info.cores > 1)) {
+        ESP_EARLY_LOGE(TAG, "Running on single core variant of a chip, but app is built with multi-core support.");
+        ESP_EARLY_LOGE(TAG, "Check that CONFIG_FREERTOS_UNICORE is enabled in menuconfig");
+        abort();
+    }
+
+    ESP_EARLY_LOGI(TAG, "Starting app cpu, entry point is %p", call_start_cpu1);
 
 #if CONFIG_IDF_TARGET_ESP32
-        Cache_Flush(1);
-        Cache_Read_Enable(1);
+    Cache_Flush(1);
+    Cache_Read_Enable(1);
 #endif
-        esp_cpu_unstall(1);
 
-        // Enable clock and reset APP CPU. Note that OpenOCD may have already
-        // enabled clock and taken APP CPU out of reset. In this case don't reset
-        // APP CPU again, as that will clear the breakpoints which may have already
-        // been set.
+    esp_cpu_unstall(1);
+
+    // Enable clock and reset APP CPU. Note that OpenOCD may have already
+    // enabled clock and taken APP CPU out of reset. In this case don't reset
+    // APP CPU again, as that will clear the breakpoints which may have already
+    // been set.
 #if CONFIG_IDF_TARGET_ESP32
-        if (!DPORT_GET_PERI_REG_MASK(DPORT_APPCPU_CTRL_B_REG, DPORT_APPCPU_CLKGATE_EN)) {
-            DPORT_SET_PERI_REG_MASK(DPORT_APPCPU_CTRL_B_REG, DPORT_APPCPU_CLKGATE_EN);
-            DPORT_CLEAR_PERI_REG_MASK(DPORT_APPCPU_CTRL_C_REG, DPORT_APPCPU_RUNSTALL);
-            DPORT_SET_PERI_REG_MASK(DPORT_APPCPU_CTRL_A_REG, DPORT_APPCPU_RESETTING);
-            DPORT_CLEAR_PERI_REG_MASK(DPORT_APPCPU_CTRL_A_REG, DPORT_APPCPU_RESETTING);
-        }
+    if (!DPORT_GET_PERI_REG_MASK(DPORT_APPCPU_CTRL_B_REG, DPORT_APPCPU_CLKGATE_EN)) {
+        DPORT_SET_PERI_REG_MASK(DPORT_APPCPU_CTRL_B_REG, DPORT_APPCPU_CLKGATE_EN);
+        DPORT_CLEAR_PERI_REG_MASK(DPORT_APPCPU_CTRL_C_REG, DPORT_APPCPU_RUNSTALL);
+        DPORT_SET_PERI_REG_MASK(DPORT_APPCPU_CTRL_A_REG, DPORT_APPCPU_RESETTING);
+        DPORT_CLEAR_PERI_REG_MASK(DPORT_APPCPU_CTRL_A_REG, DPORT_APPCPU_RESETTING);
+    }
 #elif CONFIG_IDF_TARGET_ESP32S3
-        if (!REG_GET_BIT(SYSTEM_CORE_1_CONTROL_0_REG, SYSTEM_CONTROL_CORE_1_CLKGATE_EN)) {
-            REG_SET_BIT(SYSTEM_CORE_1_CONTROL_0_REG, SYSTEM_CONTROL_CORE_1_CLKGATE_EN);
-            REG_CLR_BIT(SYSTEM_CORE_1_CONTROL_0_REG, SYSTEM_CONTROL_CORE_1_RUNSTALL);
-            REG_SET_BIT(SYSTEM_CORE_1_CONTROL_0_REG, SYSTEM_CONTROL_CORE_1_RESETING);
-            REG_CLR_BIT(SYSTEM_CORE_1_CONTROL_0_REG, SYSTEM_CONTROL_CORE_1_RESETING);
-        }
+    if (!REG_GET_BIT(SYSTEM_CORE_1_CONTROL_0_REG, SYSTEM_CONTROL_CORE_1_CLKGATE_EN)) {
+        REG_SET_BIT(SYSTEM_CORE_1_CONTROL_0_REG, SYSTEM_CONTROL_CORE_1_CLKGATE_EN);
+        REG_CLR_BIT(SYSTEM_CORE_1_CONTROL_0_REG, SYSTEM_CONTROL_CORE_1_RUNSTALL);
+        REG_SET_BIT(SYSTEM_CORE_1_CONTROL_0_REG, SYSTEM_CONTROL_CORE_1_RESETING);
+        REG_CLR_BIT(SYSTEM_CORE_1_CONTROL_0_REG, SYSTEM_CONTROL_CORE_1_RESETING);
+    }
 #endif
-        ets_set_appcpu_boot_addr((uint32_t)call_start_cpu1);
+    ets_set_appcpu_boot_addr((uint32_t)call_start_cpu1);
 
-        volatile bool cpus_up = false;
+    bool cpus_up = false;
 
-        while (!cpus_up) {
-            cpus_up = true;
-            for (int i = 0; i < SOC_CPU_CORES_NUM; i++) {
-                cpus_up &= s_cpu_up[i];
-            }
-            esp_rom_delay_us(100);
+    while (!cpus_up) {
+        cpus_up = true;
+        for (int i = 0; i < SOC_CPU_CORES_NUM; i++) {
+            cpus_up &= s_cpu_up[i];
         }
+        esp_rom_delay_us(100);
     }
 }
 #endif // !CONFIG_ESP_SYSTEM_SINGLE_CORE_MODE
@@ -331,14 +357,14 @@ void IRAM_ATTR call_start_cpu0(void)
     Cache_Resume_DCache(0);
 #endif // CONFIG_IDF_TARGET_ESP32S3
 
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
     /* Configure the Cache MMU size for instruction and rodata in flash. */
     extern uint32_t Cache_Set_IDROM_MMU_Size(uint32_t irom_size, uint32_t drom_size);
     extern int _rodata_reserved_start;
     uint32_t rodata_reserved_start_align = (uint32_t)&_rodata_reserved_start & ~(MMU_PAGE_SIZE - 1);
     uint32_t cache_mmu_irom_size = ((rodata_reserved_start_align - SOC_DROM_LOW) / MMU_PAGE_SIZE) * sizeof(uint32_t);
     Cache_Set_IDROM_MMU_Size(cache_mmu_irom_size, CACHE_DROM_MMU_MAX_END - cache_mmu_irom_size);
-#endif // CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+#endif // CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
 
     bootloader_init_mem();
 #if CONFIG_SPIRAM_BOOT_INIT
@@ -451,7 +477,7 @@ void IRAM_ATTR call_start_cpu0(void)
 
 #ifdef CONFIG_ESP_CONSOLE_UART
     uint32_t clock_hz = rtc_clk_apb_freq_get();
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
     clock_hz = UART_CLK_FREQ_ROM; // From esp32-s3 on, UART clock source is selected to XTAL in ROM
 #endif
     esp_rom_uart_tx_wait_idle(CONFIG_ESP_CONSOLE_UART_NUM);
@@ -522,6 +548,10 @@ void IRAM_ATTR call_start_cpu0(void)
         }
         esp_rom_delay_us(100);
     }
+#endif
+
+#ifdef ROM_LOG_MODE
+    esp_efuse_set_rom_log_scheme(ROM_LOG_MODE);
 #endif
 
     SYS_STARTUP_FN();

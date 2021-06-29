@@ -66,7 +66,7 @@ static inline void __attribute__((always_inline)) spinlock_initialize(spinlock_t
  */
 static inline bool __attribute__((always_inline)) spinlock_acquire(spinlock_t *lock, int32_t timeout)
 {
-#if !CONFIG_FREERTOS_UNICORE && !BOOTLOADER_BUILD
+#if 0
     uint32_t result;
     uint32_t irq_status;
     uint32_t ccount_start;
@@ -138,7 +138,7 @@ static inline bool __attribute__((always_inline)) spinlock_acquire(spinlock_t *l
  */
 static inline void __attribute__((always_inline)) spinlock_release(spinlock_t *lock)
 {
-#if !CONFIG_FREERTOS_UNICORE && !BOOTLOADER_BUILD
+#if 0
     uint32_t irq_status;
     uint32_t core_id;
 

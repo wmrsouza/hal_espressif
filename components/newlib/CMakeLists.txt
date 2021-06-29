@@ -15,14 +15,15 @@ set(srcs
     "newlib_init.c"
     "syscalls.c"
     "termios.c"
+    "stdatomic.c"
     "time.c")
 set(include_dirs platform_include)
 
 if(CONFIG_SPIRAM_CACHE_WORKAROUND)
-    set(ldfragments esp32-spiram-rom-functions-c.lf)
+    set(ldfragments "esp32-spiram-rom-functions-c.lf")
 endif()
 
-list(APPEND ldfragments newlib.lf)
+list(APPEND ldfragments "newlib.lf" "system_libs.lf")
 
 idf_component_register(SRCS "${srcs}"
                     INCLUDE_DIRS "${include_dirs}"

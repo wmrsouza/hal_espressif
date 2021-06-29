@@ -60,6 +60,7 @@
 /*-------------------------- COMMON CAPS ---------------------------------------*/
 #define SOC_CAPS_ECO_VER_MAX        3
 
+#define SOC_DAC_SUPPORTED           1
 #define SOC_MCPWM_SUPPORTED         1
 #define SOC_SDMMC_HOST_SUPPORTED    1
 #define SOC_BT_SUPPORTED            1
@@ -150,12 +151,16 @@
 #define SOC_LEDC_TIMER_BIT_WIDE_NUM  (20)
 
 /*-------------------------- MCPWM CAPS --------------------------------------*/
-#define SOC_MCPWM_PERIPH_NUM        2   ///< MCPWM peripheral number
-#define SOC_MCPWM_TIMER_NUM         3   ///< Timer that each peripheral has
-#define SOC_MCPWM_OP_NUM            3   ///< Operator that each peripheral has
-#define SOC_MCPWM_COMPARATOR_NUM    2   ///< Comparator that each operator has
-#define SOC_MCPWM_GENERATOR_NUM     2   ///< Generator that each operator has
-#define SOC_MCPWM_FAULT_SIG_NUM     3   ///< Fault signal number that each peripheral has
+#define SOC_MCPWM_GROUPS                     (2)    ///< 2 MCPWM groups on the chip (i.e., the number of independent MCPWM peripherals)
+#define SOC_MCPWM_TIMERS_PER_GROUP           (3)    ///< The number of timers that each group has
+#define SOC_MCPWM_OPERATORS_PER_GROUP        (3)    ///< The number of operators that each group has
+#define SOC_MCPWM_COMPARATORS_PER_OPERATOR   (2)    ///< The number of comparators that each operator has
+#define SOC_MCPWM_GENERATORS_PER_OPERATOR    (2)    ///< The number of generators that each operator has
+#define SOC_MCPWM_FAULT_DETECTORS_PER_GROUP  (3)    ///< The number of fault signal detectors that each group has
+#define SOC_MCPWM_CAPTURE_TIMERS_PER_GROUP   (1)    ///< The number of capture timers that each group has
+#define SOC_MCPWM_CAPTURE_CHANNELS_PER_TIMER (3)    ///< The number of capture channels that each capture timer has
+#define SOC_MCPWM_EXT_SYNCERS_PER_GROUP      (3)    ///< The number of external syncers that each group has
+#define SOC_MCPWM_BASE_CLK_HZ       (160000000ULL)  ///< Base Clock frequency of 160MHz
 
 /*-------------------------- MPU CAPS ----------------------------------------*/
 //TODO: correct the caller and remove unsupported lines
@@ -172,12 +177,13 @@
 #define SOC_PCNT_UNIT_CHANNEL_NUM (2)
 
 /*-------------------------- RMT CAPS ----------------------------------------*/
-#define SOC_RMT_CHANNEL_MEM_WORDS      (64) /*!< Each channel owns 64 words memory */
-#define SOC_RMT_TX_CHANNELS_NUM        (8)  /*!< Number of channels that capable of Transmit */
-#define SOC_RMT_RX_CHANNELS_NUM        (8)  /*!< Number of channels that capable of Receive */
-#define SOC_RMT_CHANNELS_NUM           (8)  /*!< Total 8 channels (each channel can be configured to either TX or RX) */
-#define SOC_RMT_SUPPORT_REF_TICK       (1)  /*!< Support set REF_TICK as the RMT clock source */
-#define SOC_RMT_SOURCE_CLK_INDEPENDENT (1)  /*!< Can select different source clock for channels */
+#define SOC_RMT_GROUPS                  (1)  /*!< One RMT group */
+#define SOC_RMT_TX_CANDIDATES_PER_GROUP (8)  /*!< Number of channels that capable of Transmit in each group */
+#define SOC_RMT_RX_CANDIDATES_PER_GROUP (8)  /*!< Number of channels that capable of Receive in each group */
+#define SOC_RMT_CHANNELS_PER_GROUP      (8)  /*!< Total 8 channels */
+#define SOC_RMT_MEM_WORDS_PER_CHANNEL   (64) /*!< Each channel owns 64 words memory */
+#define SOC_RMT_SUPPORT_REF_TICK        (1)  /*!< Support set REF_TICK as the RMT clock source */
+#define SOC_RMT_CHANNEL_CLK_INDEPENDENT (1)  /*!< Can select different source clock for each channel */
 
 /*-------------------------- RTCIO CAPS --------------------------------------*/
 #define SOC_RTCIO_PIN_COUNT 18
@@ -204,12 +210,10 @@
 #define SOC_SPI_PERIPH_SUPPORT_MULTILINE_MODE(spi_host)         ({(void)spi_host; 1;})
 
 /*-------------------------- TIMER GROUP CAPS --------------------------------*/
-#define SOC_TIMER_GROUP_COUNTER_BIT_WIDTH  (64)
-#define SOC_TIMER_GROUP_PRESCALE_BIT_WIDTH (16)
-#define SOC_TIMER_GROUPS (2)
-#define SOC_TIMER_GROUP_TIMERS_PER_GROUP (2)
+#define SOC_TIMER_GROUPS                  (2)
+#define SOC_TIMER_GROUP_TIMERS_PER_GROUP  (2)
+#define SOC_TIMER_GROUP_COUNTER_BIT_WIDTH (64)
 #define SOC_TIMER_GROUP_TOTAL_TIMERS (SOC_TIMER_GROUPS * SOC_TIMER_GROUP_TIMERS_PER_GROUP)
-#define SOC_TIMER_GROUP_LAYOUT {2,2}
 
 /*-------------------------- TOUCH SENSOR CAPS -------------------------------*/
 #define SOC_TOUCH_SENSOR_NUM                (10)
@@ -220,14 +224,25 @@
 
 /*-------------------------- TWAI CAPS ---------------------------------------*/
 #define SOC_TWAI_BRP_MIN                        2
+#define SOC_TWAI_SUPPORT_MULTI_ADDRESS_LAYOUT   1
+
+#define SOC_TWAI_BRP_MAX_ECO0               128
+//Any even number from 2 to 128
+#define SOC_TWAI_BRP_IS_VALID_ECO0(brp)     ((brp) >= 2 && (brp) <= 128 && ((brp) & 0x1) == 0)
+
+#define SOC_TWAI_BRP_MAX_ECO                256
+//Any even number from 2 to 128, or multiples of 4 from 132 to 256
+#define SOC_TWAI_BRP_IS_VALID_ECO(brp)      (((brp) >= 2 && (brp) <= 128 && ((brp) & 0x1) == 0) || ((brp) >= 132 && (brp) <= 256 && ((brp) & 0x3) == 0))
+
 #if SOC_CAPS_ECO_VER >= 2
-#  define SOC_TWAI_BRP_MAX              256
 #  define SOC_TWAI_BRP_DIV_SUPPORTED    1
 #  define SOC_TWAI_BRP_DIV_THRESH       128
+#  define SOC_TWAI_BRP_IS_VALID         SOC_TWAI_BRP_IS_VALID_ECO
+#  define SOC_TWAI_BRP_MAX              SOC_TWAI_BRP_MAX_ECO
 #else
-#  define SOC_TWAI_BRP_MAX              128
+#  define SOC_TWAI_BRP_IS_VALID         SOC_TWAI_BRP_IS_VALID_ECO0
+#  define SOC_TWAI_BRP_MAX              SOC_TWAI_BRP_MAX_ECO0
 #endif
-#define SOC_TWAI_SUPPORT_MULTI_ADDRESS_LAYOUT   1
 
 /*-------------------------- UART CAPS ---------------------------------------*/
 // ESP32 have 3 UART.
@@ -270,8 +285,5 @@
 #define SOC_CAN_SUPPORTED                   SOC_TWAI_SUPPORTED
 #define CAN_BRP_MIN                         SOC_TWAI_BRP_MIN
 #define CAN_BRP_MAX                         SOC_TWAI_BRP_MAX
+#define CAN_BRP_DIV_THRESH                  SOC_TWAI_BRP_DIV_THRESH
 #define CAN_SUPPORT_MULTI_ADDRESS_LAYOUT    SOC_TWAI_SUPPORT_MULTI_ADDRESS_LAYOUT
-#if SOC_CAPS_ECO_VER >= 2
-#  define CAN_BRP_DIV_SUPPORTED             SOC_TWAI_BRP_DIV_SUPPORTED
-#  define CAN_BRP_DIV_THRESH                SOC_TWAI_BRP_DIV_THRESH
-#endif

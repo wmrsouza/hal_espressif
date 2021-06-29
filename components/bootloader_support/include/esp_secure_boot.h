@@ -30,6 +30,9 @@
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rom/efuse.h"
 #include "esp32c3/rom/secure_boot.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/efuse.h"
+#include "esp32c6/rom/secure_boot.h"
 #elif CONFIG_IDF_TARGET_ESP32S3
 #include "esp32s3/rom/efuse.h"
 #include "esp32s3/rom/secure_boot.h"

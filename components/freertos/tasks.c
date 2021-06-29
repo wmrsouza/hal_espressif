@@ -231,12 +231,7 @@ count overflows. */
  * task should be used in place of the parameter.  This macro simply checks to
  * see if the parameter is NULL and returns a pointer to the appropriate TCB.
  */
-#if portNUM_PROCESSORS > 1
-/* In SMP, we need to disable interrupts if getting the current task handle outside a critical section. Calling xTaskGetCurrentTaskHandle() ensures this. */
-#define prvGetTCBFromHandle( pxHandle ) ( ( ( pxHandle ) == NULL ) ? xTaskGetCurrentTaskHandle() : ( (TaskHandle_t)pxHandle ) )
-#else
-#define prvGetTCBFromHandle( pxHandle ) ( ( ( pxHandle ) == NULL ) ? (TaskHandle_t) pxCurrentTCB[0] : ( (TaskHandle_t)pxHandle ) )
-#endif
+#define prvGetTCBFromHandle( pxHandle ) ( ( ( pxHandle ) == NULL ) ? (TaskHandle_t)pxCurrentTCB[xPortGetCoreID()] : ( (TaskHandle_t)pxHandle ) )
 
 /* The item value of the event list item is normally used to hold the priority
 of the task to which it belongs (coded to allow it to be held in reverse
@@ -1410,7 +1405,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB, TaskFunction_t pxTaskCode
 	void vTaskDelayUntil( TickType_t * const pxPreviousWakeTime, const TickType_t xTimeIncrement )
 	{
 	TickType_t xTimeToWake;
-	BaseType_t xAlreadyYielded = pdFALSE, xShouldDelay = pdFALSE;
+	BaseType_t xShouldDelay = pdFALSE;
 
 		configASSERT( pxPreviousWakeTime );
 		configASSERT( ( xTimeIncrement > 0U ) );
@@ -1474,16 +1469,8 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB, TaskFunction_t pxTaskCode
 		}
 		taskEXIT_CRITICAL( &xTaskQueueMutex );
 
-		/* Force a reschedule if xTaskResumeAll has not already done so, we may
-		have put ourselves to sleep. */
-		if( xAlreadyYielded == pdFALSE )
-		{
-			portYIELD_WITHIN_API();
-		}
-		else
-		{
-			mtCOVERAGE_TEST_MARKER();
-		}
+		/* Force a reschedule, we may have put ourselves to sleep. */
+		portYIELD_WITHIN_API();
 	}
 
 #endif /* INCLUDE_vTaskDelayUntil */
@@ -1493,8 +1480,6 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB, TaskFunction_t pxTaskCode
 
 	void vTaskDelay( const TickType_t xTicksToDelay )
 	{
-	BaseType_t xAlreadyYielded = pdFALSE;
-
 		/* A delay time of zero just forces a reschedule. */
 		if( xTicksToDelay > ( TickType_t ) 0U )
 		{
@@ -1519,17 +1504,10 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB, TaskFunction_t pxTaskCode
 			mtCOVERAGE_TEST_MARKER();
 		}
 
-		/* Force a reschedule if xTaskResumeAll has not already done so, we may
-		have put ourselves to sleep. */
-		if( xAlreadyYielded == pdFALSE )
-		{
-			portYIELD_WITHIN_API();
-		}
-		else
-		{
-			mtCOVERAGE_TEST_MARKER();
-		}
+		/* Force a reschedule, we may have put ourselves to sleep. */
+		portYIELD_WITHIN_API();
 	}
+
 
 #endif /* INCLUDE_vTaskDelay */
 /*-----------------------------------------------------------*/
@@ -1956,6 +1934,7 @@ static void prvAddNewTaskToReadyList( TCB_t *pxNewTCB, TaskFunction_t pxTaskCode
 				taskEXIT_CRITICAL(&xTaskQueueMutex);
 
 				configASSERT( suspended == 0 );
+				(void)suspended;
 				portYIELD_WITHIN_API();
 			}
 			else
@@ -4470,7 +4449,7 @@ TCB_t *pxTCB;
 }
 /*-----------------------------------------------------------*/
 
-#if ( ( INCLUDE_xTaskGetCurrentTaskHandle == 1 ) || ( configUSE_MUTEXES == 1 ) || (portNUM_PROCESSORS > 1) )
+#if ( ( INCLUDE_xTaskGetCurrentTaskHandle == 1 ) || ( configUSE_MUTEXES == 1 ) )
 
 	TaskHandle_t xTaskGetCurrentTaskHandle( void )
 	{

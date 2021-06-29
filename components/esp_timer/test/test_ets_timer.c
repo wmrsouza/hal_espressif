@@ -16,6 +16,8 @@
 #include "esp32s3/rom/ets_sys.h"
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rom/ets_sys.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/ets_sys.h"
 #endif
 
 TEST_CASE("ets_timer produces correct delay", "[ets_timer]")

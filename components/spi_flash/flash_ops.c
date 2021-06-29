@@ -40,19 +40,20 @@
 #include "esp32s3/rom/spi_flash.h"
 #include "esp32s3/rom/cache.h"
 #include "esp32s3/clk.h"
+#include "esp32s3/clk.h"
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rom/cache.h"
 #include "esp32c3/rom/spi_flash.h"
 #include "esp32c3/clk.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/cache.h"
+#include "esp32c6/rom/spi_flash.h"
+#include "esp32c6/clk.h"
 #endif
 #include "esp_flash_partitions.h"
 #include "cache_utils.h"
 #include "esp_flash.h"
 #include "esp_attr.h"
-
-#if defined(__ZEPHYR__)
-#include "common/cache_utils.h"
-#endif
 
 esp_rom_spiflash_result_t IRAM_ATTR spi_flash_write_encrypted_chip(size_t dest_addr, const void *src, size_t size);
 
@@ -96,20 +97,9 @@ static spi_flash_counters_t s_flash_stats;
 
 static esp_err_t spi_flash_translate_rc(esp_rom_spiflash_result_t rc);
 static bool is_safe_write_address(size_t addr, size_t size);
-#if !defined(__ZEPHYR__)
 static void spi_flash_os_yield(void);
-#endif
 
 const DRAM_ATTR spi_flash_guard_funcs_t g_flash_guard_default_ops = {
-#if defined(__ZEPHYR__)
-    .start                  = esp32_spiflash_start,
-    .end                    = esp32_spiflash_end,
-    .op_lock                = 0,
-    .op_unlock              = 0,
-#if !CONFIG_SPI_FLASH_DANGEROUS_WRITE_ALLOWED
-    .is_safe_write_address  = 0
-#endif
-#else
     .start                  = spi_flash_disable_interrupts_caches_and_other_cpu,
     .end                    = spi_flash_enable_interrupts_caches_and_other_cpu,
     .op_lock                = spi_flash_op_lock,
@@ -118,7 +108,6 @@ const DRAM_ATTR spi_flash_guard_funcs_t g_flash_guard_default_ops = {
     .is_safe_write_address  = is_safe_write_address,
 #endif
     .yield                  = spi_flash_os_yield,
-#endif // __ZEPHYR__
 };
 
 const DRAM_ATTR spi_flash_guard_funcs_t g_flash_guard_no_os_ops = {
@@ -242,14 +231,12 @@ static inline void IRAM_ATTR spi_flash_guard_op_unlock(void)
     }
 }
 
-#if !defined(__ZEPHYR__)
 static void IRAM_ATTR spi_flash_os_yield(void)
 {
 #ifdef CONFIG_SPI_FLASH_YIELD_DURING_ERASE
     vTaskDelay(CONFIG_SPI_FLASH_ERASE_YIELD_TICKS);
 #endif
 }
-#endif
 
 #ifdef CONFIG_SPI_FLASH_USE_LEGACY_IMPL
 static esp_rom_spiflash_result_t IRAM_ATTR spi_flash_unlock(void)

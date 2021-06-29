@@ -38,6 +38,9 @@
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rom/rtc.h"
 #include "esp32c3/rom/secure_boot.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/rtc.h"
+#include "esp32c6/rom/secure_boot.h"
 #endif
 
 /* Checking signatures as part of verifying images is necessary:
@@ -406,20 +409,9 @@ static esp_err_t verify_image_header(uint32_t src_addr, const esp_image_header_t
 
     if (image->magic != ESP_IMAGE_HEADER_MAGIC) {
         if (!silent) {
-            ESP_LOGE(TAG, "image at 0x%x has invalid magic byte", src_addr);
+            ESP_LOGE(TAG, "image at 0x%x has invalid magic byte (nothing flashed here?)", src_addr);
         }
         err = ESP_ERR_IMAGE_INVALID;
-    }
-    if (!silent) {
-        if (image->spi_mode > ESP_IMAGE_SPI_MODE_SLOW_READ) {
-            ESP_LOGW(TAG, "image at 0x%x has invalid SPI mode %d", src_addr, image->spi_mode);
-        }
-        if (image->spi_speed > ESP_IMAGE_SPI_SPEED_80M) {
-            ESP_LOGW(TAG, "image at 0x%x has invalid SPI speed %d", src_addr, image->spi_speed);
-        }
-        if (image->spi_size > ESP_IMAGE_FLASH_SIZE_MAX) {
-            ESP_LOGW(TAG, "image at 0x%x has invalid SPI size %d", src_addr, image->spi_size);
-        }
     }
 
     if (err == ESP_OK) {
@@ -452,7 +444,7 @@ static bool verify_load_addresses(int segment_index, intptr_t load_addr, intptr_
 
     if (esp_ptr_in_dram(load_addr_p) && esp_ptr_in_dram(load_end_p)) { /* Writing to DRAM */
         /* Check if we're clobbering the stack */
-        intptr_t sp = (intptr_t)get_sp();
+        intptr_t sp = (intptr_t)esp_cpu_get_sp();
         if (bootloader_util_regions_overlap(sp - STACK_LOAD_HEADROOM, SOC_ROM_STACK_START,
                                            load_addr, load_end)) {
             reason = "overlaps bootloader stack";

@@ -394,12 +394,12 @@ menu "Security features"
     config SECURE_BOOT_SUPPORTS_RSA
         bool
         default y
-        depends on ESP32_REV_MIN_3 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32C3
+        depends on ESP32_REV_MIN_3 || IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32C6
 
     config SECURE_TARGET_HAS_SECURE_ROM_DL_MODE
         bool
         default y
-        depends on IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32C3
+        depends on IDF_TARGET_ESP32S2 || IDF_TARGET_ESP32C3 || IDF_TARGET_ESP32C6
 
 
     config SECURE_SIGNED_APPS_NO_SECURE_BOOT
@@ -656,16 +656,18 @@ menu "Security features"
         depends on SECURE_FLASH_ENC_ENABLED
         default SECURE_FLASH_ENCRYPTION_MODE_DEVELOPMENT
         help
-            By default Development mode is enabled which allows UART bootloader to perform flash encryption operations
+            By default Development mode is enabled which allows ROM download mode to perform flash encryption
+            operations (plaintext is sent to the device, and it encrypts it internally and writes ciphertext
+            to flash.) This mode is not secure, it's possible for an attacker to write their own chosen plaintext
+            to flash.
 
-            Select Release mode only for production or manufacturing. Once enabled you can not reflash using UART
-            bootloader
+            Release mode should always be selected for production or manufacturing. Once enabled it's no longer
+            possible for the device in ROM Download Mode to use the flash encryption hardware.
 
-            Refer to the Secure Boot section of the ESP-IDF Programmer's Guide for this version and
-            https://docs.espressif.com/projects/esp-idf/en/latest/security/flash-encryption.html for details.
+            Refer to the Flash Encryption section of the ESP-IDF Programmer's Guide for details.
 
         config SECURE_FLASH_ENCRYPTION_MODE_DEVELOPMENT
-            bool "Development(NOT SECURE)"
+            bool "Development (NOT SECURE)"
             select SECURE_FLASH_UART_BOOTLOADER_ALLOW_ENC
 
         config SECURE_FLASH_ENCRYPTION_MODE_RELEASE
@@ -734,6 +736,16 @@ menu "Security features"
                 key digest, causing an immediate denial of service and possibly allowing an additional fault
                 injection attack to bypass the signature protection.
 
+        config SECURE_BOOT_ALLOW_UNUSED_DIGEST_SLOTS
+            bool "Leave unused digest slots available (not revoke)"
+            depends on SECURE_BOOT_INSECURE && !IDF_TARGET_ESP32
+            default N
+            help
+                If not set (default), during startup in the app all unused digest slots will be revoked.
+                To revoke unused slot will be called esp_efuse_set_digest_revoke(num_digest) for each digest.
+                Revoking unused digest slots makes ensures that no trusted keys can be added later by an attacker.
+                If set, it means that you have a plan to use unused digests slots later.
+
         config SECURE_FLASH_UART_BOOTLOADER_ALLOW_ENC
             bool "Leave UART bootloader encryption enabled"
             depends on SECURE_FLASH_ENCRYPTION_MODE_DEVELOPMENT
@@ -780,6 +792,18 @@ menu "Security features"
                 the wrong device. The device needs to have flash encryption already enabled using espefuse.py.
 
     endmenu  # Potentially Insecure
+
+    config SECURE_FLASH_CHECK_ENC_EN_IN_APP
+        bool "Check Flash Encryption enabled on app startup"
+        depends on SECURE_FLASH_ENC_ENABLED
+        default y
+        help
+            If set (default), in an app during startup code,
+            there is a check of the flash encryption eFuse bit is on
+            (as the bootloader should already have set it).
+            The app requires this bit is on to continue work otherwise abort.
+
+            If not set, the app does not care if the flash encryption eFuse bit is set or not.
 
     choice SECURE_UART_ROM_DL_MODE
         bool "UART ROM download mode"

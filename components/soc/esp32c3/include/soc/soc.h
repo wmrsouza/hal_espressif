@@ -27,7 +27,6 @@
 #define DR_REG_SYSTEM_BASE                      0x600c0000
 #define DR_REG_SENSITIVE_BASE                   0x600c1000
 #define DR_REG_INTERRUPT_BASE                   0x600c2000
-#define DR_REG_DMA_COPY_BASE                    0x600c3000
 #define DR_REG_EXTMEM_BASE                      0x600c4000
 #define DR_REG_MMU_TABLE                        0x600c5000
 #define DR_REG_AES_BASE                         0x6003a000
@@ -316,7 +315,7 @@
 #define ETS_FRC1_INUM                           22
 #define ETS_T1_WDT_INUM                         24
 #define ETS_CACHEERR_INUM                       25
-#ifdef CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
 #define ETS_MEMPROT_ERR_INUM                    26
 #endif
 #define ETS_DPORT_INUM                          28

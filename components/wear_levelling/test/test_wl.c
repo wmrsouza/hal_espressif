@@ -15,6 +15,8 @@
 #include "esp32s3/clk.h"
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/clk.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/clk.h"
 #endif
 #include "soc/cpu.h"
 #include "esp_rom_sys.h"

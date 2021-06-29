@@ -412,7 +412,11 @@ esp_err_t twai_driver_install(const twai_general_config_t *g_config, const twai_
     TWAI_CHECK(g_config->rx_queue_len > 0, ESP_ERR_INVALID_ARG);
     TWAI_CHECK(g_config->tx_io >= 0 && g_config->tx_io < GPIO_NUM_MAX, ESP_ERR_INVALID_ARG);
     TWAI_CHECK(g_config->rx_io >= 0 && g_config->rx_io < GPIO_NUM_MAX, ESP_ERR_INVALID_ARG);
+#if (CONFIG_ESP32_REV_MIN >= 2)
+    TWAI_CHECK(t_config->brp >= SOC_TWAI_BRP_MIN && t_config->brp <= SOC_TWAI_BRP_MAX_ECO, ESP_ERR_INVALID_ARG);
+#else
     TWAI_CHECK(t_config->brp >= SOC_TWAI_BRP_MIN && t_config->brp <= SOC_TWAI_BRP_MAX, ESP_ERR_INVALID_ARG);
+#endif
 #ifndef CONFIG_TWAI_ISR_IN_IRAM
     TWAI_CHECK(!(g_config->intr_flags & ESP_INTR_FLAG_IRAM), ESP_ERR_INVALID_ARG);
 #endif
@@ -446,6 +450,7 @@ esp_err_t twai_driver_install(const twai_general_config_t *g_config, const twai_
     periph_module_enable(PERIPH_TWAI_MODULE);            //Enable APB CLK to TWAI peripheral
     bool init = twai_hal_init(&twai_context);
     assert(init);
+    (void)init;
     twai_hal_configure(&twai_context, t_config, f_config, DRIVER_DEFAULT_INTERRUPTS, g_config->clkout_divider);
     TWAI_EXIT_CRITICAL();
 
@@ -572,6 +577,7 @@ esp_err_t twai_transmit(const twai_message_t *message, TickType_t ticks_to_wait)
                     //Manually start a transmission
                     int res = xQueueReceive(p_twai_obj->tx_queue, &tx_frame, 0);
                     assert(res == pdTRUE);
+                    (void)res;
                     twai_hal_set_tx_buffer_and_transmit(&twai_context, &tx_frame);
                     p_twai_obj->tx_msg_count++;
                     ret = ESP_OK;

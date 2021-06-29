@@ -147,6 +147,9 @@ void rtc_init(rtc_config_t cfg)
             calibrate_ocode();
         }
     }
+
+    REG_WRITE(RTC_CNTL_INT_ENA_REG, 0);
+    REG_WRITE(RTC_CNTL_INT_CLR_REG, UINT32_MAX);
 }
 
 rtc_vddsdio_config_t rtc_vddsdio_get_config(void)
@@ -192,8 +195,7 @@ static void set_ocode_by_efuse(int calib_version)
     assert(calib_version == 1);
     // use efuse ocode.
     uint32_t ocode;
-    esp_err_t err = esp_efuse_read_field_blob(ESP_EFUSE_OCODE, &ocode, 8);
-    assert(err == ESP_OK);
+    ESP_ERROR_CHECK(esp_efuse_read_field_blob(ESP_EFUSE_OCODE, &ocode, 8));
     REGI2C_WRITE_MASK(I2C_ULP, I2C_ULP_EXT_CODE, ocode);
     REGI2C_WRITE_MASK(I2C_ULP, I2C_ULP_IR_FORCE_CODE, 1);
 }

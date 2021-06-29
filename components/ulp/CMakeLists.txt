@@ -1,6 +1,6 @@
 idf_build_get_property(target IDF_TARGET)
 
-if(NOT (IDF_TARGET STREQUAL "esp32c3"))
+if(NOT (IDF_TARGET STREQUAL "esp32c3") AND NOT (${target} STREQUAL "esp32c6"))
     set(srcs "ulp.c"
              "ulp_macro.c")
 

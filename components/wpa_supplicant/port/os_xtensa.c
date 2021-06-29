@@ -25,6 +25,7 @@
 #include "os.h"
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 #include <sys/time.h>
 #include "esp_system.h"
 #include "utils/common.h"

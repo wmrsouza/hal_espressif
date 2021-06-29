@@ -13,12 +13,6 @@
 #define SOC_HMAC_SUPPORTED          1
 #define SOC_ASYNC_MEMCPY_SUPPORTED  1
 
-#include "rmt_caps.h"
-
-/*-------------------------- DAC CAPS ----------------------------------------*/
-#define SOC_DAC_PERIPH_NUM      0
-
-
 #include "i2c_caps.h"
 #include "mpu_caps.h"
 #include "sigmadelta_caps.h"
@@ -29,11 +23,9 @@
 #include "i2s_caps.h"
 #include "rtc_io_caps.h"
 #include "soc_caps.h"
-#include "timer_group_caps.h"
 #include "cpu_caps.h"
 #include "gpio_caps.h"
 #include "ledc_caps.h"
-#include "rmt_caps.h"
 #include "spi_caps.h"
 #include "uart_caps.h"
 #include "rtc_caps.h"
@@ -47,7 +39,7 @@
 
 /*-------------------------- TWAI CAPS ---------------------------------------*/
 #define SOC_TWAI_BRP_MIN                2
-#define SOC_TWAI_BRP_MAX                32768
+#define SOC_TWAI_BRP_MAX                16384
 #define SOC_TWAI_SUPPORTS_RX_STATUS     1
 
 /*--------------------------- SHA CAPS ---------------------------------------*/
@@ -70,6 +62,24 @@
 #define SOC_SHA_SUPPORT_SHA224          (1)
 #define SOC_SHA_SUPPORT_SHA256          (1)
 
+/*--------------------------- TIMER GROUP CAPS ---------------------------------------*/
+#define SOC_TIMER_GROUPS                  (2)
+#define SOC_TIMER_GROUP_TIMERS_PER_GROUP  (1)
+#define SOC_TIMER_GROUP_COUNTER_BIT_WIDTH (54)
+#define SOC_TIMER_GROUP_SUPPORT_XTAL      (1)
+#define SOC_TIMER_GROUP_TOTAL_TIMERS (SOC_TIMER_GROUPS * SOC_TIMER_GROUP_TIMERS_PER_GROUP)
+
+/*--------------------------- RMT CAPS ---------------------------------------*/
+#define SOC_RMT_GROUPS                  (1)  /*!< One RMT group */
+#define SOC_RMT_TX_CANDIDATES_PER_GROUP (2)  /*!< Number of channels that capable of Transmit */
+#define SOC_RMT_RX_CANDIDATES_PER_GROUP (2)  /*!< Number of channels that capable of Receive */
+#define SOC_RMT_CHANNELS_PER_GROUP      (4)  /*!< Total 4 channels */
+#define SOC_RMT_MEM_WORDS_PER_CHANNEL   (48) /*!< Each channel owns 48 words memory (1 word = 4 Bytes) */
+#define SOC_RMT_SUPPORT_RX_PINGPONG     (1)  /*!< Support Ping-Pong mode on RX path */
+#define SOC_RMT_SUPPORT_RX_DEMODULATION (1)  /*!< Support signal demodulation on RX path (i.e. remove carrier) */
+#define SOC_RMT_SUPPORT_TX_LOOP_COUNT   (1)  /*!< Support transmit specified number of cycles in loop mode */
+#define SOC_RMT_SUPPORT_TX_SYNCHRO      (1)  /*!< Support coordinate a group of TX channels to start simultaneously */
+#define SOC_RMT_SUPPORT_XTAL            (1)  /*!< Support set XTAL clock as the RMT clock source */
 
 /*--------------------------- RSA CAPS ---------------------------------------*/
 #define SOC_RSA_MAX_BIT_LEN    (3072)

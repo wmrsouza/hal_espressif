@@ -9,6 +9,8 @@
 #define SOC_PCNT_SUPPORTED              1
 #define SOC_TWAI_SUPPORTED              1
 #define SOC_GDMA_SUPPORTED              1
+#define SOC_I80_LCD_SUPPORTED           1
+#define SOC_MCPWM_SUPPORTED             1
 #define SOC_DEDICATED_GPIO_SUPPORTED    1
 #define SOC_CPU_CORES_NUM               2
 #define SOC_CACHE_SUPPORT_WRAP          1
@@ -30,9 +32,6 @@
 /*-------------------------- CPU CAPS ----------------------------------------*/
 #include "cpu_caps.h"
 
-/*-------------------------- DAC CAPS ----------------------------------------*/
-#include "dac_caps.h"
-
 /*-------------------------- GDMA CAPS ---------------------------------------*/
 #include "gdma_caps.h"
 
@@ -52,6 +51,18 @@
 /*-------------------------- LEDC CAPS ---------------------------------------*/
 #include "ledc_caps.h"
 
+/*-------------------------- MCPWM CAPS --------------------------------------*/
+#define SOC_MCPWM_GROUPS                     (2)    ///< 2 MCPWM groups on the chip (i.e., the number of independent MCPWM peripherals)
+#define SOC_MCPWM_TIMERS_PER_GROUP           (3)    ///< The number of timers that each group has
+#define SOC_MCPWM_OPERATORS_PER_GROUP        (3)    ///< The number of operators that each group has
+#define SOC_MCPWM_COMPARATORS_PER_OPERATOR   (2)    ///< The number of comparators that each operator has
+#define SOC_MCPWM_GENERATORS_PER_OPERATOR    (2)    ///< The number of generators that each operator has
+#define SOC_MCPWM_FAULT_DETECTORS_PER_GROUP  (3)    ///< The number of fault signal detectors that each group has
+#define SOC_MCPWM_CAPTURE_TIMERS_PER_GROUP   (1)    ///< The number of capture timers that each group has
+#define SOC_MCPWM_CAPTURE_CHANNELS_PER_TIMER (3)    ///< The number of capture channels that each capture timer has
+#define SOC_MCPWM_EXT_SYNCERS_PER_GROUP      (3)    ///< The number of external syncers that each group has
+#define SOC_MCPWM_BASE_CLK_HZ       (160000000ULL)  ///< Base Clock frequency of 160MHz
+
 /*-------------------------- MPU CAPS ----------------------------------------*/
 #include "mpu_caps.h"
 
@@ -61,15 +72,22 @@
 #define SOC_PCNT_UNIT_CHANNEL_NUM (2)
 
 /*-------------------------- RMT CAPS ----------------------------------------*/
-#define SOC_RMT_CHANNEL_MEM_WORDS       (48) /*!< Each channel owns 48 words memory (1 word = 4 Bytes) */
-#define SOC_RMT_TX_CHANNELS_NUM         (4)  /*!< Number of channels that capable of Transmit */
-#define SOC_RMT_RX_CHANNELS_NUM         (4)  /*!< Number of channels that capable of Receive */
-#define SOC_RMT_CHANNELS_NUM            (8)  /*!< Total 8 channels (each channel can be configured to either TX or RX) */
+#define SOC_RMT_GROUPS                  (1)  /*!< One RMT group */
+#define SOC_RMT_TX_CANDIDATES_PER_GROUP (4)  /*!< Number of channels that capable of Transmit in each group */
+#define SOC_RMT_RX_CANDIDATES_PER_GROUP (4)  /*!< Number of channels that capable of Receive in each group */
+#define SOC_RMT_CHANNELS_PER_GROUP      (8)  /*!< Total 8 channels */
+#define SOC_RMT_MEM_WORDS_PER_CHANNEL   (48) /*!< Each channel owns 48 words memory (1 word = 4 Bytes) */
 #define SOC_RMT_SUPPORT_RX_PINGPONG     (1)  /*!< Support Ping-Pong mode on RX path */
 #define SOC_RMT_SUPPORT_RX_DEMODULATION (1)  /*!< Support signal demodulation on RX path (i.e. remove carrier) */
 #define SOC_RMT_SUPPORT_TX_LOOP_COUNT   (1)  /*!< Support transmit specified number of cycles in loop mode */
-#define SOC_RMT_SUPPORT_TX_GROUP        (1)  /*!< Support a group of TX channels to transmit simultaneously */
+#define SOC_RMT_SUPPORT_TX_SYNCHRO      (1)  /*!< Support coordinate a group of TX channels to start simultaneously */
 #define SOC_RMT_SUPPORT_XTAL            (1)  /*!< Support set XTAL clock as the RMT clock source */
+
+
+/*-------------------------- LCD CAPS ----------------------------------------*/
+#define SOC_LCD_I80_BUSES               (1)  /*!< Has one LCD Intel 8080 bus */
+#define SOC_LCD_RGB_PANELS              (1)  /*!< Support one RGB LCD panel */
+#define SOC_LCD_MAX_DATA_WIDTH          (16) /*!< Maximum number of LCD data lines */
 
 /*-------------------------- RTCIO CAPS --------------------------------------*/
 #include "rtc_io_caps.h"
@@ -88,13 +106,11 @@
 #include "systimer_caps.h"
 
 /*-------------------------- TIMER GROUP CAPS --------------------------------*/
-#define SOC_TIMER_GROUP_SUPPORT_XTAL       (1)
-#define SOC_TIMER_GROUP_COUNTER_BIT_WIDTH  (54)
-#define SOC_TIMER_GROUP_PRESCALE_BIT_WIDTH (16)
-#define SOC_TIMER_GROUPS                   (2)
-#define SOC_TIMER_GROUP_TIMERS_PER_GROUP   (2)
+#define SOC_TIMER_GROUPS                  (2)
+#define SOC_TIMER_GROUP_TIMERS_PER_GROUP  (2)
+#define SOC_TIMER_GROUP_COUNTER_BIT_WIDTH (54)
+#define SOC_TIMER_GROUP_SUPPORT_XTAL      (1)
 #define SOC_TIMER_GROUP_TOTAL_TIMERS (SOC_TIMER_GROUPS * SOC_TIMER_GROUP_TIMERS_PER_GROUP)
-#define SOC_TIMER_GROUP_LAYOUT             {2,2}
 
 /*-------------------------- TOUCH SENSOR CAPS -------------------------------*/
 #include "touch_sensor_caps.h"

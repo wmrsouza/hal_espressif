@@ -55,7 +55,6 @@ endif()
 
 if(${target} STREQUAL "esp32s3")
     list(APPEND srcs "adc_common.c"
-                     "dac_common.c"
                      "dedic_gpio.c"
                      "gdma.c"
                      "spi_slave_hd.c"
@@ -72,11 +71,20 @@ if(IDF_TARGET STREQUAL "esp32c3")
                      "esp32c3/rtc_tempsensor.c")
 endif()
 
+if(IDF_TARGET STREQUAL "esp32c6")
+    list(APPEND srcs "gdma.c"
+                     "spi_slave_hd.c"
+                     "adc_common.c"
+                     "esp32c6/adc.c"
+                     "esp32c6/adc2_init_cal.c"
+                     "esp32c6/rtc_tempsensor.c")
+endif()
+
 idf_component_register(SRCS "${srcs}"
                     INCLUDE_DIRS ${includes}
                     PRIV_INCLUDE_DIRS "include/driver"
-                    PRIV_REQUIRES efuse esp_pm esp_timer esp_ipc
-                    REQUIRES esp_ringbuf freertos soc hal esp_hw_support
+                    PRIV_REQUIRES efuse esp_timer esp_ipc
+                    REQUIRES esp_pm esp_ringbuf freertos soc hal esp_hw_support
                     LDFRAGMENTS linker.lf)
 # (REQUIRES cannot hide soc headers, since many arguments in the driver headers are chip-dependent)
 

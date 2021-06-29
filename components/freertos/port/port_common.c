@@ -33,7 +33,7 @@
 #include "esp32s2/spiram.h"
 #elif CONFIG_IDF_TARGET_ESP32S3
 #include "esp32s3/spiram.h"
-#elif CONFIG_IDF_TARGET_ESP32C3
+#elif CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
 // SPIRAM is not supported on ESP32-C3
 #endif
 
@@ -81,8 +81,9 @@ void esp_startup_start_app_common(void)
 
 	portBASE_TYPE res = xTaskCreatePinnedToCore(&main_task, "main",
 												ESP_TASK_MAIN_STACK, NULL,
-												ESP_TASK_MAIN_PRIO, NULL, 0);
+												ESP_TASK_MAIN_PRIO, NULL, ESP_TASK_MAIN_CORE);
 	assert(res == pdTRUE);
+	(void)res;
 }
 
 static void main_task(void* args)

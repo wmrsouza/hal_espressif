@@ -12,17 +12,11 @@ if(BOOTLOADER_BUILD)
 else()
     # Regular app build
 
-    set(srcs "cache_err_int.c"
-             "clk.c"
-             "crosscore_int.c"
-             "dport_access.c"
+    set(srcs "dport_access.c"
              "esp_crypto_lock.c"
-             "hw_random.c"
-
              "memprot.c"
              "spiram.c"
-             "spiram_psram.c"
-             "system_api_esp32s3.c")
+             "spiram_psram.c")
     set(include_dirs "include")
 
     set(requires driver efuse soc xtensa) #unfortunately rom/uart uses SOC registers directly
@@ -32,11 +26,9 @@ else()
     # esp_timer is added here because cpu_start.c uses esp_timer
     set(priv_requires app_trace app_update bootloader_support log mbedtls nvs_flash pthread
         spi_flash vfs espcoredump esp_common perfmon esp_timer esp_ipc)
-    set(fragments linker.lf ld/esp32s3_fragments.lf)
 
     idf_component_register(SRCS "${srcs}"
                         INCLUDE_DIRS "${include_dirs}"
-                        LDFRAGMENTS "${fragments}"
                         REQUIRES "${requires}"
                         PRIV_REQUIRES "${priv_requires}"
                         REQUIRED_IDF_TARGETS esp32s3)
@@ -58,7 +50,8 @@ else()
     add_custom_command(
         OUTPUT esp32s3_out.ld
         COMMAND "${CMAKE_C_COMPILER}" -C -P -x c -E -o esp32s3_out.ld -I ${config_dir} ${LD_DIR}/esp32s3.ld
-        MAIN_DEPENDENCY ${LD_DIR}/esp32s3.ld ${sdkconfig_header}
+        MAIN_DEPENDENCY ${LD_DIR}/esp32s3.ld
+        DEPENDS ${sdkconfig_header}
         COMMENT "Generating linker script..."
         VERBATIM)
 

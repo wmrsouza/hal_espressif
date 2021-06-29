@@ -47,7 +47,11 @@
 #include "nvs_flash.h"
 #include "esp_phy_init.h"
 #include "esp_coexist_internal.h"
+
+#if CONFIG_ESP_COREDUMP_ENABLE
 #include "esp_core_dump.h"
+#endif
+
 #include "esp_app_trace.h"
 #include "esp_private/dbg_stubs.h"
 #include "esp_pm.h"
@@ -56,24 +60,24 @@
 #include "esp_private/usb_console.h"
 #include "esp_vfs_cdcacm.h"
 
+#include "brownout.h"
+
 #include "esp_rom_sys.h"
 
 // [refactor-todo] make this file completely target-independent
 #if CONFIG_IDF_TARGET_ESP32
 #include "esp32/clk.h"
 #include "esp32/spiram.h"
-#include "esp32/brownout.h"
 #elif CONFIG_IDF_TARGET_ESP32S2
 #include "esp32s2/clk.h"
 #include "esp32s2/spiram.h"
-#include "esp32s2/brownout.h"
 #elif CONFIG_IDF_TARGET_ESP32S3
 #include "esp32s3/clk.h"
 #include "esp32s3/spiram.h"
-#include "esp32s3/brownout.h"
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/clk.h"
-#include "esp32c3/brownout.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/clk.h"
 #endif
 /***********************************************/
 
@@ -312,6 +316,7 @@ static void do_core_init(void)
     esp_flash_app_init();
     esp_err_t flash_ret = esp_flash_init_default_chip();
     assert(flash_ret == ESP_OK);
+    (void)flash_ret;
 
 #ifdef CONFIG_SECURE_FLASH_ENC_ENABLED
     esp_flash_encryption_init_checks();
@@ -410,11 +415,10 @@ IRAM_ATTR ESP_SYSTEM_INIT_FN(init_components0, BIT(0))
     esp_timer_init();
 
 #if CONFIG_ESP32C3_LIGHTSLEEP_GPIO_RESET_WORKAROUND && !CONFIG_PM_SLP_DISABLE_GPIO
-    /* Configure to isolate (disable the Input/Output/Pullup/Pulldown
-     * function of the pin) all GPIO pins in sleep state
-     */
+    // Configure to isolate (disable the Input/Output/Pullup/Pulldown
+    // function of the pin) all GPIO pins in sleep state
     esp_sleep_config_gpio_isolate();
-    /* Enable automatic switching of GPIO configuration */
+    // Enable automatic switching of GPIO configuration
     esp_sleep_enable_gpio_switch(true);
 #endif
 

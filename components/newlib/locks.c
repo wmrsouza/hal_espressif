@@ -252,7 +252,7 @@ static StaticSemaphore_t s_common_mutex;
 static StaticSemaphore_t s_common_recursive_mutex;
 
 
-#ifdef CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
 /* C3 ROM is built without Newlib static lock symbols exported, and
  * with an extra level of _LOCK_T indirection in mind.
  * The following is a workaround for this:
@@ -387,13 +387,13 @@ void esp_newlib_locks_init(void)
     __env_lock_object = (_lock_t) &s_common_mutex;
     extern _lock_t __tz_lock_object;
     __tz_lock_object = (_lock_t) &s_common_recursive_mutex;
-#elif defined(CONFIG_IDF_TARGET_ESP32S2) || defined(CONFIG_IDF_TARGET_ESP32S3)
+#elif defined(CONFIG_IDF_TARGET_ESP32S2)
     /* Newlib 3.0.0 is used in ROM, the following lock symbols are defined: */
     extern _lock_t __sinit_recursive_mutex;
     __sinit_recursive_mutex = (_lock_t) &s_common_recursive_mutex;
     extern _lock_t __sfp_recursive_mutex;
     __sfp_recursive_mutex = (_lock_t) &s_common_recursive_mutex;
-#elif defined(CONFIG_IDF_TARGET_ESP32C3)
+#elif defined(CONFIG_IDF_TARGET_ESP32C3) || defined(CONFIG_IDF_TARGET_ESP32S3) || defined(CONFIG_IDF_TARGET_ESP32C6)
     /* Newlib 3.3.0 is used in ROM, built with _RETARGETABLE_LOCKING.
      * No access to lock variables for the purpose of ECO forward compatibility,
      * however we have an API to initialize lock variables used in the ROM.

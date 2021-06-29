@@ -148,8 +148,7 @@ void vPortExitCritical(void)
 void vPortSetupTimer(void)
 {
     /* set system timer interrupt vector */
-    esp_err_t err = esp_intr_alloc(ETS_SYSTIMER_TARGET0_EDGE_INTR_SOURCE, ESP_INTR_FLAG_IRAM, vPortSysTickHandler, NULL, NULL);
-    assert(err == ESP_OK);
+    ESP_ERROR_CHECK(esp_intr_alloc(ETS_SYSTIMER_TARGET0_EDGE_INTR_SOURCE, ESP_INTR_FLAG_IRAM, vPortSysTickHandler, NULL, NULL));
 
     /* configure the timer */
     systimer_hal_init();
@@ -338,7 +337,7 @@ void vPortSetStackWatchpoint(void *pxStackStart)
 {
     uint32_t addr = (uint32_t)pxStackStart;
     addr = (addr + (STACK_WATCH_AREA_SIZE - 1)) & (~(STACK_WATCH_AREA_SIZE - 1));
-    esp_set_watchpoint(STACK_WATCH_POINT_NUMBER, (char *)addr, STACK_WATCH_AREA_SIZE, ESP_WATCHPOINT_STORE);
+    esp_cpu_set_watchpoint(STACK_WATCH_POINT_NUMBER, (char *)addr, STACK_WATCH_AREA_SIZE, ESP_WATCHPOINT_STORE);
 }
 
 uint32_t xPortGetTickRateHz(void) {

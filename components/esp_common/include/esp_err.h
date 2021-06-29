@@ -16,6 +16,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <assert.h>
+#include "esp_compiler.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,13 +78,8 @@ const char *esp_err_to_name(esp_err_t code);
   */
 const char *esp_err_to_name_r(esp_err_t code, char *buf, size_t buflen);
 
-#if __ZEPHYR__
-/** @cond */
-void _esp_error_check_failed(esp_err_t rc, const char *file, int line, const char *function, const char *expression);
-#else
 /** @cond */
 void _esp_error_check_failed(esp_err_t rc, const char *file, int line, const char *function, const char *expression) __attribute__((noreturn));
-#endif
 
 /** @cond */
 void _esp_error_check_failed_without_abort(esp_err_t rc, const char *file, int line, const char *function, const char *expression);
@@ -109,21 +105,21 @@ void _esp_error_check_failed_without_abort(esp_err_t rc, const char *file, int l
  */
 #ifdef NDEBUG
 #define ESP_ERROR_CHECK(x) do {                                         \
-        esp_err_t __err_rc = (x);                                       \
-        (void) sizeof(__err_rc);                                        \
+        esp_err_t err_rc_ = (x);                                        \
+        (void) sizeof(err_rc_);                                         \
     } while(0)
 #elif defined(CONFIG_COMPILER_OPTIMIZATION_ASSERTIONS_SILENT)
 #define ESP_ERROR_CHECK(x) do {                                         \
-        esp_err_t __err_rc = (x);                                       \
-        if (__err_rc != ESP_OK) {                                       \
+        esp_err_t err_rc_ = (x);                                        \
+        if (unlikely(err_rc_ != ESP_OK)) {                              \
             abort();                                                    \
         }                                                               \
     } while(0)
 #else
 #define ESP_ERROR_CHECK(x) do {                                         \
-        esp_err_t __err_rc = (x);                                       \
-        if (__err_rc != ESP_OK) {                                       \
-            _esp_error_check_failed(__err_rc, __FILE__, __LINE__,       \
+        esp_err_t err_rc_ = (x);                                        \
+        if (unlikely(err_rc_ != ESP_OK)) {                              \
+            _esp_error_check_failed(err_rc_, __FILE__, __LINE__,        \
                                     __ASSERT_FUNC, #x);                 \
         }                                                               \
     } while(0)
@@ -136,17 +132,17 @@ void _esp_error_check_failed_without_abort(esp_err_t rc, const char *file, int l
  */
 #ifdef NDEBUG
 #define ESP_ERROR_CHECK_WITHOUT_ABORT(x) ({                                         \
-        esp_err_t __err_rc = (x);                                                   \
-        __err_rc;                                                                   \
+        esp_err_t err_rc_ = (x);                                                    \
+        err_rc_;                                                                    \
     })
 #else
 #define ESP_ERROR_CHECK_WITHOUT_ABORT(x) ({                                         \
-        esp_err_t __err_rc = (x);                                                   \
-        if (__err_rc != ESP_OK) {                                                   \
-            _esp_error_check_failed_without_abort(__err_rc, __FILE__, __LINE__,     \
-                                    __ASSERT_FUNC, #x);                             \
+        esp_err_t err_rc_ = (x);                                                    \
+        if (unlikely(err_rc_ != ESP_OK)) {                                          \
+            _esp_error_check_failed_without_abort(err_rc_, __FILE__, __LINE__,      \
+                                                  __ASSERT_FUNC, #x);               \
         }                                                                           \
-        __err_rc;                                                                   \
+        err_rc_;                                                                    \
     })
 #endif //NDEBUG
 

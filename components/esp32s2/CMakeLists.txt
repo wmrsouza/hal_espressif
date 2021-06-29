@@ -11,15 +11,10 @@ if(BOOTLOADER_BUILD)
 else()
     # Regular app build
 
-    set(srcs "cache_err_int.c"
-             "memprot.c"
-             "clk.c"
-             "crosscore_int.c"
+    set(srcs "memprot.c"
              "dport_access.c"
-             "hw_random.c"
              "spiram.c"
              "spiram_psram.c"
-             "system_api_esp32s2.c"
              "esp_crypto_lock.c"
              "esp_hmac.c"
              "esp_ds.c")
@@ -34,11 +29,8 @@ else()
         app_trace app_update bootloader_support esp_system log mbedtls nvs_flash
         pthread spi_flash vfs espcoredump esp_common esp_timer)
 
-    set(fragments linker.lf ld/esp32s2_fragments.lf)
-
     idf_component_register(SRCS "${srcs}"
                         INCLUDE_DIRS "${include_dirs}"
-                        LDFRAGMENTS "${fragments}"
                         REQUIRES "${requires}"
                         PRIV_REQUIRES "${priv_requires}"
                         REQUIRED_IDF_TARGETS esp32s2)
@@ -61,7 +53,8 @@ else()
     add_custom_command(
         OUTPUT esp32s2_out.ld
         COMMAND "${CMAKE_C_COMPILER}" -C -P -x c -E -o esp32s2_out.ld -I ${config_dir} ${LD_DIR}/esp32s2.ld
-        MAIN_DEPENDENCY ${LD_DIR}/esp32s2.ld ${sdkconfig_header}
+        MAIN_DEPENDENCY ${LD_DIR}/esp32s2.ld
+        DEPENDS ${sdkconfig_header}
         COMMENT "Generating linker script..."
         VERBATIM)
 

@@ -19,10 +19,10 @@ if(CONFIG_ETH_ENABLED)
     endif()
 
     if(CONFIG_ETH_USE_ESP32_EMAC)
-        list(APPEND srcs "src/esp_eth_mac_esp32.c"
+        list(APPEND srcs "src/esp_eth_mac_esp.c"
                          "src/esp_eth_phy_dp83848.c"
                          "src/esp_eth_phy_ip101.c"
-                         "src/esp_eth_phy_ksz8041.c"
+                         "src/esp_eth_phy_ksz80xx.c"
                          "src/esp_eth_phy_lan8720.c"
                          "src/esp_eth_phy_rtl8201.c")
     endif()

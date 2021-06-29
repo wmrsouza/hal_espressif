@@ -18,7 +18,7 @@ set(srcs
 
 if(BOOTLOADER_BUILD)
     set(include_dirs "include" "include_bootloader")
-    set(priv_requires micro-ecc spi_flash efuse)
+    set(priv_requires micro-ecc spi_flash efuse esp_rom)
     list(APPEND srcs
     "src/bootloader_init.c"
     "src/bootloader_clock_loader.c"
@@ -35,7 +35,7 @@ else()
         "src/idf/bootloader_sha.c")
     set(include_dirs "include")
     set(priv_include_dirs "include_bootloader")
-    set(priv_requires spi_flash mbedtls efuse app_update)
+    set(priv_requires spi_flash mbedtls efuse app_update esp_rom)
 endif()
 
 if(BOOTLOADER_BUILD)

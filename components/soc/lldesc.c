@@ -3,7 +3,6 @@
 void lldesc_setup_link(lldesc_t *dmadesc, const void *data, int len, bool isrx)
 {
     int n = 0;
-    uint8_t *buf = (uint8_t *)data;
     while (len) {
         int dmachunklen = len;
         if (dmachunklen > LLDESC_MAX_NUM_PER_DESC) {
@@ -17,13 +16,13 @@ void lldesc_setup_link(lldesc_t *dmadesc, const void *data, int len, bool isrx)
             dmadesc[n].size = dmachunklen;
             dmadesc[n].length = dmachunklen;
         }
-        dmadesc[n].buf = buf;
+        dmadesc[n].buf = (uint8_t *)data;
         dmadesc[n].eof = 0;
         dmadesc[n].sosf = 0;
         dmadesc[n].owner = 1;
         dmadesc[n].qe.stqe_next = &dmadesc[n + 1];
         len -= dmachunklen;
-        buf += dmachunklen;
+        data += dmachunklen;
         n++;
     }
     dmadesc[n - 1].eof = 1; //Mark last DMA desc as end of stream.

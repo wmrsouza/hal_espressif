@@ -648,7 +648,7 @@ TEST_CASE("I2C general API test", "[i2c]")
     }
 }
 
-#if !TEMPORARY_DISABLED_FOR_TARGETS(ESP32S3, ESP32C3)
+#if !TEMPORARY_DISABLED_FOR_TARGETS(ESP32S3, ESP32C3, ESP32C6)
 //Init uart baud rate detection
 static void uart_aut_baud_det_init(int rxd_io_num)
 {

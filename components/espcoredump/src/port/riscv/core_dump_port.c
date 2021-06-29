@@ -227,8 +227,14 @@ uint32_t esp_core_dump_get_isr_stack_end(void)
  */
 static inline bool esp_core_dump_task_stack_end_is_sane(uint32_t sp)
 {
-    //TODO: currently core dump supports stacks in DRAM only, external SRAM not supported yet
-    return esp_ptr_in_dram((void *)sp);
+    return esp_ptr_in_dram((void *)sp)
+#if CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY
+        || esp_stack_ptr_in_extram(sp)
+#endif
+#if CONFIG_ESP_SYSTEM_ALLOW_RTC_FAST_MEM_AS_HEAP
+        || esp_ptr_in_rtc_dram_fast((void*) sp)
+#endif
+    ;
 }
 
 bool esp_core_dump_check_stack(core_dump_task_header_t *task)
@@ -329,7 +335,7 @@ uint32_t esp_core_dump_get_task_regs_dump(core_dump_task_header_t *task, void **
 
     ESP_COREDUMP_LOG_PROCESS("Add regs for task 0x%x", task->tcb_addr);
 
-    stack_len = esp_core_dump_get_stack(task, &stack_paddr, &stack_vaddr);
+    stack_len = esp_core_dump_get_stack(task, &stack_vaddr, &stack_paddr);
 
     if (stack_len < sizeof(RvExcFrame)) {
         ESP_COREDUMP_LOGE("Too small stack to keep frame: %d bytes!", stack_len);
@@ -373,6 +379,40 @@ uint32_t esp_core_dump_get_extra_info(void **info)
     }
 
     return size;
+}
+
+void esp_core_dump_summary_parse_extra_info(esp_core_dump_summary_t *summary, void *ei_data)
+{
+    riscv_extra_info_t *ei = (riscv_extra_info_t *)ei_data;
+    summary->exc_tcb = ei->crashed_task_tcb;
+    ESP_COREDUMP_LOGD("Crash TCB 0x%x", summary->exc_tcb);
+}
+
+void esp_core_dump_summary_parse_exc_regs(esp_core_dump_summary_t *summary, void *stack_data)
+{
+    int i;
+    long *a_reg;
+    RvExcFrame *stack = (RvExcFrame *)stack_data;
+    summary->exc_pc = stack->mepc;
+    ESP_COREDUMP_LOGD("Crashing PC 0x%x", summary->exc_pc);
+
+    summary->ex_info.mstatus = stack->mstatus;
+    summary->ex_info.mtvec = stack->mtvec;
+    summary->ex_info.mcause = stack->mcause;
+    summary->ex_info.mtval = stack->mtval;
+    ESP_COREDUMP_LOGD("mstatus:0x%x mtvec:0x%x mcause:0x%x mval:0x%x",
+                       stack->mstatus, stack->mtvec, stack->mcause, stack->mtval);
+    a_reg = &stack->a0;
+    for (i = 0; i < 8; i++) {
+        summary->ex_info.exc_a[i] = a_reg[i];
+        ESP_COREDUMP_LOGD("A[%d] 0x%x", i, summary->ex_info.exc_a[i]);
+    }
+}
+
+void esp_core_dump_summary_parse_backtrace_info(esp_core_dump_bt_info_t *bt_info, const void *vaddr,
+                                                const void *paddr, uint32_t stack_size)
+{
+    return;
 }
 
 #endif

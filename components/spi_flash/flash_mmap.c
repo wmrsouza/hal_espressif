@@ -17,6 +17,9 @@
 #include <string.h>
 #include <stdio.h>
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
 #include "soc/soc.h"
 #include "soc/soc_memory_layout.h"
 #include "soc/dport_access.h"
@@ -26,7 +29,7 @@
 #include "esp_flash_encrypt.h"
 #include "esp_log.h"
 #include "cache_utils.h"
-#include "esp_heap_caps_adapter.h"
+
 #if CONFIG_IDF_TARGET_ESP32
 #include "soc/dport_reg.h"
 #include "esp32/rom/cache.h"
@@ -50,6 +53,11 @@
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rom/cache.h"
 #include "esp32c3/rom/spi_flash.h"
+#include "soc/cache_memory.h"
+#include "soc/mmu.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/cache.h"
+#include "esp32c6/rom/spi_flash.h"
 #include "soc/cache_memory.h"
 #include "soc/mmu.h"
 #endif

@@ -43,6 +43,11 @@ extern uint8_t esp_wifi_get_user_init_flag_internal(void);
 static esp_pm_lock_handle_t s_wifi_modem_sleep_lock;
 #endif
 
+#if CONFIG_IDF_TARGET_ESP32
+/* Callback function to update WiFi MAC time */
+wifi_mac_time_update_cb_t s_wifi_mac_time_update_cb = NULL;
+#endif
+
 /* Set additional WiFi features and capabilities */
 uint64_t g_wifi_feature_caps =
 #if CONFIG_ESP32_WIFI_ENABLE_WPA3_SAE
@@ -145,7 +150,6 @@ esp_err_t esp_wifi_deinit(void)
 #if SOC_WIFI_HW_TSF
     esp_pm_unregister_skip_light_sleep_callback(esp_wifi_internal_is_tsf_active);
     esp_pm_unregister_inform_out_light_sleep_overhead_callback(esp_wifi_internal_update_light_sleep_wake_ahead_time);
-    esp_sleep_disable_wifi_wakeup();
 #endif
 #if CONFIG_ESP_WIFI_SLP_IRAM_OPT
     esp_pm_unregister_light_sleep_default_params_config_callback();
@@ -286,6 +290,22 @@ esp_err_t esp_wifi_init(const wifi_init_config_t *config)
     }
     adc2_cal_include(); //This enables the ADC2 calibration constructor at start up.
 
+#ifdef CONFIG_ESP_WIFI_FTM_REPORT_LOG_ENABLE
+    ftm_report_log_level_t log_lvl = {0};
+#ifdef CONFIG_ESP_WIFI_FTM_REPORT_SHOW_RTT
+    log_lvl.show_rtt = 1;
+#endif
+#ifdef CONFIG_ESP_WIFI_FTM_REPORT_SHOW_DIAG
+    log_lvl.show_diag = 1;
+#endif
+#ifdef CONFIG_ESP_WIFI_FTM_REPORT_SHOW_T1T2T3T4
+    log_lvl.show_t1t2t3t4 = 1;
+#endif
+#ifdef CONFIG_ESP_WIFI_FTM_REPORT_SHOW_RSSI
+    log_lvl.show_rxrssi = 1;
+#endif
+    esp_wifi_set_ftm_report_log_level(&log_lvl);
+#endif
     esp_wifi_config_info();
     return result;
 }
@@ -324,10 +344,3 @@ void set_xpd_sar(bool en)
         adc_power_release();
     }
 }
-
-#ifndef CONFIG_ESP_WIFI_FTM_ENABLE
-void ieee80211_ftm_attach(void)
-{
-    /* Do not remove, stub to overwrite weak link in Wi-Fi Lib */
-}
-#endif

@@ -40,6 +40,8 @@
 #include "esp32s3/clk.h"
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/clk.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/clk.h"
 #endif
 
 #ifdef CONFIG_UART_ISR_IN_IRAM

@@ -37,6 +37,7 @@
 #pragma once
 
 /*-------------------------- COMMON CAPS ---------------------------------------*/
+#define SOC_DAC_SUPPORTED               1
 #define SOC_TWAI_SUPPORTED              1
 #define SOC_CP_DMA_SUPPORTED            1
 #define SOC_CPU_CORES_NUM               1
@@ -87,7 +88,6 @@
 
 /*-------------------------- DAC CAPS ----------------------------------------*/
 #define SOC_DAC_PERIPH_NUM      2
-
 #define SOC_DAC_RESOLUTION      8 // DAC resolution ratio 8 bit
 
 /*-------------------------- GPIO CAPS ---------------------------------------*/
@@ -161,16 +161,17 @@
 #define SOC_PCNT_UNIT_CHANNEL_NUM (2)
 
 /*-------------------------- RMT CAPS ----------------------------------------*/
-#define SOC_RMT_CHANNEL_MEM_WORDS       (64) /*!< Each channel owns 64 words memory (1 word = 4 Bytes) */
-#define SOC_RMT_TX_CHANNELS_NUM         (4)  /*!< Number of channels that capable of Transmit */
-#define SOC_RMT_RX_CHANNELS_NUM         (4)  /*!< Number of channels that capable of Receive */
-#define SOC_RMT_CHANNELS_NUM            (4)  /*!< Total 4 channels (each channel can be configured to either TX or RX) */
+#define SOC_RMT_GROUPS                  (1)  /*!< One RMT group */
+#define SOC_RMT_TX_CANDIDATES_PER_GROUP (4)  /*!< Number of channels that capable of Transmit in each group */
+#define SOC_RMT_RX_CANDIDATES_PER_GROUP (4)  /*!< Number of channels that capable of Receive in each group */
+#define SOC_RMT_CHANNELS_PER_GROUP      (4)  /*!< Total 4 channels */
+#define SOC_RMT_MEM_WORDS_PER_CHANNEL   (64) /*!< Each channel owns 64 words memory (1 word = 4 Bytes) */
 #define SOC_RMT_SUPPORT_RX_PINGPONG     (1)  /*!< Support Ping-Pong mode on RX path */
 #define SOC_RMT_SUPPORT_RX_DEMODULATION (1)  /*!< Support signal demodulation on RX path (i.e. remove carrier) */
-#define SOC_RMT_SUPPORT_TX_LOOP_COUNT   (1)  /*!< Support transmit specified number of cycles in loop mode */
-#define SOC_RMT_SUPPORT_TX_GROUP        (1)  /*!< Support a group of TX channels to transmit simultaneously */
+#define SOC_RMT_SUPPORT_TX_LOOP_COUNT   (1)  /*!< Support transmiting specified number of cycles in loop mode */
+#define SOC_RMT_SUPPORT_TX_SYNCHRO      (1)  /*!< Support coordinate a group of TX channels to start simultaneously */
 #define SOC_RMT_SUPPORT_REF_TICK        (1)  /*!< Support set REF_TICK as the RMT clock source */
-#define SOC_RMT_SOURCE_CLK_INDEPENDENT  (1)  /*!< Can select different source clock for channels */
+#define SOC_RMT_CHANNEL_CLK_INDEPENDENT (1)  /*!< Can select different source clock for each channel */
 
 /*-------------------------- RTCIO CAPS --------------------------------------*/
 #define SOC_RTCIO_PIN_COUNT   22
@@ -217,14 +218,11 @@
 #define SOC_SYSTIMER_BIT_WIDTH_HI (32) // Bit width of systimer high part
 
 /*-------------------------- TIMER GROUP CAPS --------------------------------*/
-#define SOC_TIMER_GROUP_SUPPORT_XTAL (1)
-#define SOC_TIMER_GROUP_XTAL_MHZ (40)
-#define SOC_TIMER_GROUP_COUNTER_BIT_WIDTH  (64)
-#define SOC_TIMER_GROUP_PRESCALE_BIT_WIDTH (16)
-#define SOC_TIMER_GROUPS (2)
-#define SOC_TIMER_GROUP_TIMERS_PER_GROUP (2)
+#define SOC_TIMER_GROUP_COUNTER_BIT_WIDTH (64)
+#define SOC_TIMER_GROUPS                  (2)
+#define SOC_TIMER_GROUP_TIMERS_PER_GROUP  (2)
+#define SOC_TIMER_GROUP_SUPPORT_XTAL      (1)
 #define SOC_TIMER_GROUP_TOTAL_TIMERS (SOC_TIMER_GROUPS * SOC_TIMER_GROUP_TIMERS_PER_GROUP)
-#define SOC_TIMER_GROUP_LAYOUT {2,2}
 
 /*-------------------------- TOUCH SENSOR CAPS -------------------------------*/
 #define SOC_TOUCH_SENSOR_NUM                (15)    /*! 15 Touch channels */

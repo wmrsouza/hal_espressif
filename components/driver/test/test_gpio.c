@@ -40,7 +40,7 @@
 #define TEST_GPIO_OUTPUT_PIN        12
 #define TEST_GPIO_INPUT_ONLY_PIN    46
 #define TEST_GPIO_OUTPUT_MAX        GPIO_NUM_47
-#elif CONFIG_IDF_TARGET_ESP32C3
+#elif CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
 #define TEST_GPIO_EXT_OUT_IO        2  // default output GPIO
 #define TEST_GPIO_EXT_IN_IO         3  // default input GPIO
 #define TEST_GPIO_OUTPUT_PIN        1
@@ -184,7 +184,7 @@ TEST_CASE("GPIO config parameters test", "[gpio]")
     TEST_ESP_OK(gpio_config(&io_config));
 
     //This IO is just used for input, C3 doesn't have input only pin.
-#if !CONFIG_IDF_TARGET_ESP32C3
+#if !CONFIG_IDF_TARGET_ESP32C3 && !CONFIG_IDF_TARGET_ESP32C6
     io_config.pin_bit_mask = ((uint64_t)1 << TEST_GPIO_INPUT_ONLY_PIN);
     io_config.mode = GPIO_MODE_INPUT;
     TEST_ESP_OK(gpio_config(&io_config));
@@ -414,7 +414,7 @@ TEST_CASE("GPIO set gpio output level test", "[gpio][ignore]")
     TEST_ASSERT_EQUAL_INT_MESSAGE(gpio_get_level(TEST_GPIO_EXT_IN_IO), 1, "get level error! the level should be high!");
 
     //This IO is just used for input, C3 doesn't have input only pin.
-#if !CONFIG_IDF_TARGET_ESP32C3
+#if !CONFIG_IDF_TARGET_ESP32C3 && !CONFIG_IDF_TARGET_ESP32C6
     io_conf.pin_bit_mask = ((uint64_t)1<<TEST_GPIO_INPUT_ONLY_PIN);
     io_conf.mode = GPIO_MODE_OUTPUT;
     gpio_config(&io_conf);

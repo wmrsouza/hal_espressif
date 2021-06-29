@@ -56,7 +56,8 @@ typedef enum {
     ESP_SHA1_STATE_INIT,
     ESP_SHA1_STATE_IN_PROCESS
 } esp_sha1_state;
-
+#include "esp32c6/rom/sha.h"
+typedef SHA_TYPE esp_sha_type;
 /**
  * \brief          SHA-1 context structure
  */

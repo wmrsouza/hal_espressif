@@ -6,7 +6,7 @@
 #include "driver/spi_master.h"
 #include "driver/spi_slave.h"
 
-#if !DISABLED_FOR_TARGETS(ESP32C3)
+#if !DISABLED_FOR_TARGETS(ESP32C3, ESP32C6)
 //There is only one GPSPI controller on ESP32C3, so single-board test is disabled.
 
 #ifndef MIN

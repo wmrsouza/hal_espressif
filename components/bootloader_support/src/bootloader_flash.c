@@ -37,6 +37,8 @@
 #include "esp32s3/rom/spi_flash.h"
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rom/spi_flash.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/spi_flash.h"
 #endif
 
 
@@ -126,6 +128,10 @@ esp_err_t bootloader_flash_erase_range(uint32_t start_addr, uint32_t size)
 #include "esp32c3/rom/spi_flash.h"
 #include "esp32c3/rom/cache.h"
 #include "soc/cache_memory.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/spi_flash.h"
+#include "esp32c6/rom/cache.h"
+#include "soc/cache_memory.h"
 #endif
 static const char *TAG = "bootloader_flash";
 
@@ -190,6 +196,9 @@ const void *bootloader_mmap(uint32_t src_addr, uint32_t size)
 #elif CONFIG_IDF_TARGET_ESP32C3
     uint32_t autoload = Cache_Suspend_ICache();
     Cache_Invalidate_ICache_All();
+#elif CONFIG_IDF_TARGET_ESP32C6
+    uint32_t autoload = Cache_Suspend_ICache();
+    Cache_Invalidate_ICache_All();
 #endif
     ESP_LOGD(TAG, "mmu set paddr=%08x count=%d size=%x src_addr=%x src_addr_aligned=%x",
              src_addr & MMU_FLASH_MASK, count, size, src_addr, src_addr_aligned );
@@ -210,6 +219,8 @@ const void *bootloader_mmap(uint32_t src_addr, uint32_t size)
         Cache_Resume_DCache(autoload);
 #elif CONFIG_IDF_TARGET_ESP32C3
         Cache_Resume_ICache(autoload);
+#elif CONFIG_IDF_TARGET_ESP32C6
+        Cache_Resume_ICache(autoload);
 #endif
         return NULL;
     }
@@ -220,6 +231,8 @@ const void *bootloader_mmap(uint32_t src_addr, uint32_t size)
 #elif CONFIG_IDF_TARGET_ESP32S3
     Cache_Resume_DCache(autoload);
 #elif CONFIG_IDF_TARGET_ESP32C3
+    Cache_Resume_ICache(autoload);
+#elif CONFIG_IDF_TARGET_ESP32C6
     Cache_Resume_ICache(autoload);
 #endif
 
@@ -246,6 +259,11 @@ void bootloader_munmap(const void *mapping)
         Cache_Invalidate_DCache_All();
         Cache_MMU_Init();
 #elif CONFIG_IDF_TARGET_ESP32C3
+        //TODO, save the autoload value.
+        Cache_Suspend_ICache();
+        Cache_Invalidate_ICache_All();
+        Cache_MMU_Init();
+#elif CONFIG_IDF_TARGET_ESP32C6
         //TODO, save the autoload value.
         Cache_Suspend_ICache();
         Cache_Invalidate_ICache_All();
@@ -281,6 +299,8 @@ static esp_err_t bootloader_flash_read_no_decrypt(size_t src_addr, void *dest, s
     uint32_t autoload = Cache_Suspend_DCache();
 #elif CONFIG_IDF_TARGET_ESP32C3
     uint32_t autoload = Cache_Suspend_ICache();
+#elif CONFIG_IDF_TARGET_ESP32C6
+    uint32_t autoload = Cache_Suspend_ICache();
 #endif
     esp_rom_spiflash_result_t r = esp_rom_spiflash_read(src_addr, dest, size);
 #if CONFIG_IDF_TARGET_ESP32
@@ -290,6 +310,8 @@ static esp_err_t bootloader_flash_read_no_decrypt(size_t src_addr, void *dest, s
 #elif CONFIG_IDF_TARGET_ESP32S3
     Cache_Resume_DCache(autoload);
 #elif CONFIG_IDF_TARGET_ESP32C3
+    Cache_Resume_ICache(autoload);
+#elif CONFIG_IDF_TARGET_ESP32C6
     Cache_Resume_ICache(autoload);
 #endif
 
@@ -318,6 +340,9 @@ static esp_err_t bootloader_flash_read_allow_decrypt(size_t src_addr, void *dest
 #elif CONFIG_IDF_TARGET_ESP32C3
             uint32_t autoload = Cache_Suspend_ICache();
             Cache_Invalidate_ICache_All();
+#elif CONFIG_IDF_TARGET_ESP32C6
+            uint32_t autoload = Cache_Suspend_ICache();
+            Cache_Invalidate_ICache_All();
 #endif
             ESP_LOGD(TAG, "mmu set block paddr=0x%08x (was 0x%08x)", map_at, current_read_mapping);
 #if CONFIG_IDF_TARGET_ESP32
@@ -327,6 +352,8 @@ static esp_err_t bootloader_flash_read_allow_decrypt(size_t src_addr, void *dest
 #elif CONFIG_IDF_TARGET_ESP32S3
             int e = Cache_Dbus_MMU_Set(MMU_ACCESS_FLASH, MMU_BLOCK63_VADDR, map_at, 64, 1, 0);
 #elif CONFIG_IDF_TARGET_ESP32C3
+            int e = Cache_Dbus_MMU_Set(MMU_ACCESS_FLASH, MMU_BLOCK63_VADDR, map_at, 64, 1, 0);
+#elif CONFIG_IDF_TARGET_ESP32C6
             int e = Cache_Dbus_MMU_Set(MMU_ACCESS_FLASH, MMU_BLOCK63_VADDR, map_at, 64, 1, 0);
 #endif
             if (e != 0) {
@@ -339,6 +366,8 @@ static esp_err_t bootloader_flash_read_allow_decrypt(size_t src_addr, void *dest
                 Cache_Resume_DCache(autoload);
 #elif CONFIG_IDF_TARGET_ESP32C3
                 Cache_Resume_ICache(autoload);
+#elif CONFIG_IDF_TARGET_ESP32C6
+                Cache_Resume_ICache(autoload);
 #endif
                 return ESP_FAIL;
             }
@@ -350,6 +379,8 @@ static esp_err_t bootloader_flash_read_allow_decrypt(size_t src_addr, void *dest
 #elif CONFIG_IDF_TARGET_ESP32S3
             Cache_Resume_DCache(autoload);
 #elif CONFIG_IDF_TARGET_ESP32C3
+            Cache_Resume_ICache(autoload);
+#elif CONFIG_IDF_TARGET_ESP32C6
             Cache_Resume_ICache(autoload);
 #endif
         }

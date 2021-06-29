@@ -13,7 +13,7 @@
 #include "esp_rom_gpio.h"
 
 //There is only one GPSPI controller, so single-board test is disabled.
-#if !DISABLED_FOR_TARGETS(ESP32C3)
+#if !DISABLED_FOR_TARGETS(ESP32C3, ESP32C6)
 
 #ifndef CONFIG_SPIRAM
 //This test should be removed once the timing test is merged.

@@ -27,6 +27,8 @@
 #include "esp32s2/rom/usb/usb_common.h"
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rom/ets_sys.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/ets_sys.h"
 #endif
 #include "esp_rom_gpio.h"
 #include "esp_rom_uart.h"

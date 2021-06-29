@@ -26,6 +26,7 @@
 #include "esp_rom_sys.h"
 #include "esp_core_dump_common.h"
 #include "esp_core_dump_port.h"
+#include "esp_debug_helpers.h"
 
 const static DRAM_ATTR char TAG[] __attribute__((unused)) = "esp_core_dump_port";
 
@@ -299,8 +300,14 @@ uint8_t* esp_core_dump_get_isr_stack_top(void) {
 
 static inline bool esp_core_dump_task_stack_end_is_sane(uint32_t sp)
 {
-    //TODO: currently core dump supports stacks in DRAM only, external SRAM not supported yet
-    return esp_ptr_in_dram((void *)sp);
+    return esp_ptr_in_dram((void *)sp)
+#if CONFIG_SPIRAM_ALLOW_STACK_EXTERNAL_MEMORY
+        || esp_stack_ptr_in_extram(sp)
+#endif
+#if CONFIG_ESP_SYSTEM_ALLOW_RTC_FAST_MEM_AS_HEAP
+        || esp_ptr_in_rtc_dram_fast((void*) sp)
+#endif
+    ;
 }
 
 
@@ -387,28 +394,31 @@ bool esp_core_dump_check_task(core_dump_task_header_t *task)
                                             task->tcb_addr,
                                             task->stack_start,
                                             task->stack_end);
-    }
-    XtSolFrame *sol_frame = (XtSolFrame *)task->stack_start;
-    if (sol_frame->exit == 0) {
-        ESP_COREDUMP_LOG_PROCESS("Task (TCB:%x), EXIT/PC/PS/A0/SP %x %x %x %x %x",
-                                    task->tcb_addr,
-                                    sol_frame->exit,
-                                    sol_frame->pc,
-                                    sol_frame->ps,
-                                    sol_frame->a0,
-                                    sol_frame->a1);
     } else {
-// to avoid warning that 'exc_frame' is unused when ESP_COREDUMP_LOG_PROCESS does nothing
-#if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
-        XtExcFrame *exc_frame = (XtExcFrame *)task->stack_start;
-        ESP_COREDUMP_LOG_PROCESS("Task (TCB:%x) EXIT/PC/PS/A0/SP %x %x %x %x %x",
-                                    task->tcb_addr,
-                                    exc_frame->exit,
-                                    exc_frame->pc,
-                                    exc_frame->ps,
-                                    exc_frame->a0,
-                                    exc_frame->a1);
-#endif
+        /* This shall be done only if the stack was correct, else, stack_start
+         * would point to a fake address. */
+        XtSolFrame *sol_frame = (XtSolFrame *)task->stack_start;
+        if (sol_frame->exit == 0) {
+            ESP_COREDUMP_LOG_PROCESS("Task (TCB:%x), EXIT/PC/PS/A0/SP %x %x %x %x %x",
+                                        task->tcb_addr,
+                                        sol_frame->exit,
+                                        sol_frame->pc,
+                                        sol_frame->ps,
+                                        sol_frame->a0,
+                                        sol_frame->a1);
+        } else {
+    // to avoid warning that 'exc_frame' is unused when ESP_COREDUMP_LOG_PROCESS does nothing
+    #if CONFIG_ESP_COREDUMP_ENABLE_TO_FLASH
+            XtExcFrame *exc_frame = (XtExcFrame *)task->stack_start;
+            ESP_COREDUMP_LOG_PROCESS("Task (TCB:%x) EXIT/PC/PS/A0/SP %x %x %x %x %x",
+                                        task->tcb_addr,
+                                        exc_frame->exit,
+                                        exc_frame->pc,
+                                        exc_frame->ps,
+                                        exc_frame->a0,
+                                        exc_frame->a1);
+    #endif
+        }
     }
     return true;
 }
@@ -420,12 +430,14 @@ bool esp_core_dump_check_task(core_dump_task_header_t *task)
  */
 uint32_t esp_core_dump_get_task_regs_dump(core_dump_task_header_t *task, void **reg_dump)
 {
-    uint32_t stack_vaddr, stack_paddr, stack_len;
+    uint32_t stack_vaddr = 0;
+    uint32_t stack_paddr = 0;
+    uint32_t stack_len = 0;
     static xtensa_elf_reg_dump_t s_reg_dump = { 0 };
 
     ESP_COREDUMP_DEBUG_ASSERT(task != NULL && reg_dump != NULL);
 
-    stack_len = esp_core_dump_get_stack(task, &stack_paddr, &stack_vaddr);
+    stack_len = esp_core_dump_get_stack(task, &stack_vaddr, &stack_paddr);
 
     ESP_COREDUMP_LOG_PROCESS("Add regs for task 0x%x", task->tcb_addr);
 
@@ -459,6 +471,92 @@ uint32_t esp_core_dump_get_extra_info(void **info)
         *info = &s_extra_info;
     }
     return sizeof(s_extra_info);
+}
+
+void esp_core_dump_summary_parse_extra_info(esp_core_dump_summary_t *summary, void *ei_data)
+{
+    int i;
+    xtensa_extra_info_t *ei = (xtensa_extra_info_t *) ei_data;
+    summary->exc_tcb = ei->crashed_task_tcb;
+    summary->ex_info.exc_vaddr = ei->excvaddr.reg_val;
+    summary->ex_info.exc_cause = ei->exccause.reg_val;
+    ESP_COREDUMP_LOGD("Crash TCB 0x%x", summary->exc_tcb);
+    ESP_COREDUMP_LOGD("excvaddr 0x%x", summary->ex_info.exc_vaddr);
+    ESP_COREDUMP_LOGD("exccause 0x%x", summary->ex_info.exc_cause);
+
+    memset(summary->ex_info.epcx, 0, sizeof(summary->ex_info.epcx));
+    summary->ex_info.epcx_reg_bits = 0;
+    for (i = 0; i < COREDUMP_EXTRA_REG_NUM; i++ ) {
+        if (ei->extra_regs[i].reg_index >= EPC_1
+            && ei->extra_regs[i].reg_index < (EPC_1 + XCHAL_NUM_INTLEVELS)) {
+            summary->ex_info.epcx[ei->extra_regs[i].reg_index - EPC_1] = ei->extra_regs[i].reg_val;
+            summary->ex_info.epcx_reg_bits |= (1 << (ei->extra_regs[i].reg_index - EPC_1));
+        }
+    }
+}
+
+void esp_core_dump_summary_parse_exc_regs(esp_core_dump_summary_t *summary, void *stack_data)
+{
+    int i;
+    long *a_reg;
+    XtExcFrame *stack = (XtExcFrame *) stack_data;
+    summary->exc_pc = esp_cpu_process_stack_pc(stack->pc);
+    ESP_COREDUMP_LOGD("Crashing PC 0x%x", summary->exc_pc);
+
+    a_reg = &stack->a0;
+    for (i = 0; i < 16; i++) {
+        summary->ex_info.exc_a[i] = a_reg[i];
+        ESP_COREDUMP_LOGD("A[%d] 0x%x", i, summary->ex_info.exc_a[i]);
+    }
+}
+
+void esp_core_dump_summary_parse_backtrace_info(esp_core_dump_bt_info_t *bt_info, const void *vaddr,
+                                                const void *paddr, uint32_t stack_size)
+{
+    int offset;
+    bool corrupted;
+    esp_backtrace_frame_t frame;
+    XtExcFrame *stack = (XtExcFrame *) paddr;
+    int max_depth = (int) (sizeof(bt_info->bt) / sizeof(bt_info->bt[0]));
+    int index = 0;
+
+    frame.pc = stack->pc;
+    frame.sp = stack->a1;
+    frame.next_pc = stack->a0;
+
+    corrupted = !(esp_stack_ptr_is_sane(frame.sp) &&
+                esp_ptr_executable((void *)esp_cpu_process_stack_pc(frame.pc)));
+
+    /* vaddr is actual stack address when crash occurred. However that stack is now saved
+     * in the flash at a different location. Hence for each SP, we need to adjust the offset
+     * to point to next frame in the flash */
+    offset = (uint32_t) stack - (uint32_t) vaddr;
+
+    ESP_COREDUMP_LOGD("Crash Backtrace");
+    bt_info->bt[index] = esp_cpu_process_stack_pc(frame.pc);
+    ESP_COREDUMP_LOGD(" 0x%x", bt_info->bt[index]);
+    index++;
+
+    while (max_depth-- > 0 && frame.next_pc && !corrupted) {
+        /* Check if the Stack Pointer is in valid address range */
+        if (!((uint32_t)frame.sp >= (uint32_t)vaddr &&
+            ((uint32_t)frame.sp <= (uint32_t)vaddr + stack_size))) {
+            corrupted = true;
+            break;
+        }
+        /* Adjusting the SP to address in flash than in actual RAM */
+        frame.sp += offset;
+        if (!esp_backtrace_get_next_frame(&frame)) {
+            corrupted = true;
+        }
+        if (corrupted == false) {
+            bt_info->bt[index] = esp_cpu_process_stack_pc(frame.pc);
+            ESP_COREDUMP_LOGD(" 0x%x", bt_info->bt[index]);
+            index++;
+        }
+    }
+    bt_info->depth = index;
+    bt_info->corrupted = corrupted;
 }
 
 #endif

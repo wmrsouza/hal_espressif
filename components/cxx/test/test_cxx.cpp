@@ -56,7 +56,7 @@ TEST_CASE("can use std::vector", "[cxx]")
 #define LEAKS "300"
 #elif CONFIG_IDF_TARGET_ESP32S2
 #define LEAKS "800"
-#elif CONFIG_IDF_TARGET_ESP32C3
+#elif CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
 #define LEAKS "600"
 #else
 #error "unknown target in CXX tests, can't set leaks threshold"

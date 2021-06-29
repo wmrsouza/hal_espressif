@@ -261,7 +261,7 @@ TEST_CASE("SPI Master test, interaction of multiple devs", "[spi]") {
     TEST_ASSERT(success);
 }
 
-#if !DISABLED_FOR_TARGETS(ESP32C3)  //There is no input-only pin on esp32c3, so this test could be ignored.
+#if !DISABLED_FOR_TARGETS(ESP32C3, ESP32C6)  //There is no input-only pin on esp32c3, so this test could be ignored.
 static esp_err_t test_master_pins(int mosi, int miso, int sclk, int cs)
 {
     esp_err_t ret;
@@ -370,7 +370,7 @@ TEST_CASE("spi bus setting with different pin configs", "[spi]")
     TEST_ESP_OK(spicommon_bus_initialize_io(TEST_SPI_HOST, &cfg, flags_expected|SPICOMMON_BUSFLAG_SLAVE, &flags_o));
     TEST_ASSERT_EQUAL_HEX32( flags_expected, flags_o );
 
-#if !DISABLED_FOR_TARGETS(ESP32C3)  //There is no input-only pin on esp32c3, so this test could be ignored.
+#if !DISABLED_FOR_TARGETS(ESP32C3, ESP32C6)  //There is no input-only pin on esp32c3, so this test could be ignored.
     ESP_LOGI(TAG, "test master 5 output pins and MOSI on input-only pin...");
     flags_expected = SPICOMMON_BUSFLAG_SCLK | SPICOMMON_BUSFLAG_MOSI | SPICOMMON_BUSFLAG_MISO | SPICOMMON_BUSFLAG_WPHD | SPICOMMON_BUSFLAG_GPIO_PINS;
     cfg = (spi_bus_config_t){.mosi_io_num = spi_periph_signal[TEST_SPI_HOST].spid_iomux_pin, .miso_io_num = INPUT_ONLY_PIN, .sclk_io_num = spi_periph_signal[TEST_SPI_HOST].spiclk_iomux_pin, .quadhd_io_num = spi_periph_signal[TEST_SPI_HOST].spihd_iomux_pin, .quadwp_io_num = spi_periph_signal[TEST_SPI_HOST].spiwp_iomux_pin,
@@ -417,7 +417,7 @@ TEST_CASE("spi bus setting with different pin configs", "[spi]")
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, spicommon_bus_initialize_io(TEST_SPI_HOST, &cfg, flags_expected|SPICOMMON_BUSFLAG_MASTER, &flags_o));
     TEST_ASSERT_EQUAL(ESP_ERR_INVALID_ARG, spicommon_bus_initialize_io(TEST_SPI_HOST, &cfg, flags_expected|SPICOMMON_BUSFLAG_SLAVE, &flags_o));
 
-#if !DISABLED_FOR_TARGETS(ESP32C3)  //There is no input-only pin on esp32c3, so this test could be ignored.
+#if !DISABLED_FOR_TARGETS(ESP32C3, ESP32C6)  //There is no input-only pin on esp32c3, so this test could be ignored.
     ESP_LOGI(TAG, "check dual flag for master 5 output pins and MISO/MOSI on input-only pin...");
     flags_expected = SPICOMMON_BUSFLAG_DUAL | SPICOMMON_BUSFLAG_GPIO_PINS;
     cfg = (spi_bus_config_t){.mosi_io_num = spi_periph_signal[TEST_SPI_HOST].spid_iomux_pin, .miso_io_num = INPUT_ONLY_PIN, .sclk_io_num = spi_periph_signal[TEST_SPI_HOST].spiclk_iomux_pin, .quadhd_io_num = spi_periph_signal[TEST_SPI_HOST].spihd_iomux_pin, .quadwp_io_num = spi_periph_signal[TEST_SPI_HOST].spiwp_iomux_pin,
@@ -719,7 +719,7 @@ TEST_CASE("SPI Master DMA test: length, start, not aligned", "[spi]")
 }
 
 
-#if !DISABLED_FOR_TARGETS(ESP32C3)  //There is only one GPSPI controller, so single-board test is disabled.
+#if !DISABLED_FOR_TARGETS(ESP32C3,ESP32C6)  //There is only one GPSPI controller, so single-board test is disabled.
 static uint8_t bitswap(uint8_t in)
 {
     uint8_t out = 0;
@@ -838,7 +838,7 @@ void test_cmd_addr(spi_slave_task_context_t *slave_context, bool lsb_first)
         }
 
         //clean
-        vRingbufferReturnItem(slave_context->data_received, buffer);
+        vRingbufferReturnItem(slave_context->data_received, rcv_data);
     }
 
     TEST_ASSERT(spi_bus_remove_device(spi) == ESP_OK);
@@ -1050,7 +1050,6 @@ TEST_CASE("SPI master hd dma TX without RX test", "[spi]")
 #endif  //#if !DISABLED_FOR_TARGETS(ESP32C3)
 
 
-#if !TEMPORARY_DISABLED_FOR_TARGETS(ESP32C3)
 /********************************************************************************
  *      Test SPI transaction interval
  ********************************************************************************/
@@ -1058,8 +1057,8 @@ TEST_CASE("SPI master hd dma TX without RX test", "[spi]")
 #ifndef CONFIG_FREERTOS_CHECK_PORT_CRITICAL_COMPLIANCE
 
 #define RECORD_TIME_PREPARE() uint32_t __t1, __t2
-#define RECORD_TIME_START()   do {__t1 = xthal_get_ccount();}while(0)
-#define RECORD_TIME_END(p_time) do{__t2 = xthal_get_ccount(); *p_time = (__t2-__t1);}while(0)
+#define RECORD_TIME_START()   do {__t1 = esp_cpu_get_ccount();}while(0)
+#define RECORD_TIME_END(p_time) do{__t2 = esp_cpu_get_ccount(); *p_time = (__t2-__t1);}while(0)
 #ifdef CONFIG_IDF_TARGET_ESP32
 #define GET_US_BY_CCOUNT(t) ((double)t/CONFIG_ESP32_DEFAULT_CPU_FREQ_MHZ)
 #elif CONFIG_IDF_TARGET_ESP32S2
@@ -1068,6 +1067,8 @@ TEST_CASE("SPI master hd dma TX without RX test", "[spi]")
 #define GET_US_BY_CCOUNT(t) ((double)t/CONFIG_ESP32S3_DEFAULT_CPU_FREQ_MHZ)
 #elif CONFIG_IDF_TARGET_ESP32C3
 #define GET_US_BY_CCOUNT(t) ((double)t/CONFIG_ESP32C3_DEFAULT_CPU_FREQ_MHZ)
+#elif CONFIG_IDF_TARGET_ESP32C6
+#define GET_US_BY_CCOUNT(t) ((double)t/CONFIG_ESP32C6_DEFAULT_CPU_FREQ_MHZ)
 #endif
 
 static void speed_setup(spi_device_handle_t* spi, bool use_dma)
@@ -1203,5 +1204,3 @@ TEST_CASE("spi_speed","[spi]")
     master_free_device_bus(spi);
 }
 #endif // CONFIG_FREERTOS_CHECK_PORT_CRITICAL_COMPLIANCE
-
-#endif // #if !TEMPORARY_DISABLED_FOR_TARGETS(ESP32C3)

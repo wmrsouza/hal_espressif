@@ -14,7 +14,6 @@
 
 #pragma once
 #include <stdbool.h>
-#include <stddef.h>
 #include "sdkconfig.h"
 
 #if CONFIG_IDF_TARGET_ESP32
@@ -25,6 +24,8 @@
 #include "esp32s3/rom/lldesc.h"
 #elif CONFIG_IDF_TARGET_ESP32C3
 #include "esp32c3/rom/lldesc.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/lldesc.h"
 #endif
 
 //the size field has 12 bits, but 0 not for 4096.

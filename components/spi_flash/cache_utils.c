@@ -39,6 +39,11 @@
 #include "esp32c3/rom/cache.h"
 #include "soc/extmem_reg.h"
 #include "soc/cache_memory.h"
+#elif CONFIG_IDF_TARGET_ESP32C6
+#include "esp32c6/rom/spi_flash.h"
+#include "esp32c6/rom/cache.h"
+#include "soc/extmem_reg.h"
+#include "soc/cache_memory.h"
 #endif
 #include <soc/soc.h>
 #include "sdkconfig.h"
@@ -125,7 +130,7 @@ void IRAM_ATTR spi_flash_op_block_func(void *arg)
 
 void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu(void)
 {
-    assert(esp_ptr_in_dram((const void *)get_sp()));
+    assert(esp_ptr_in_dram((const void *)esp_cpu_get_sp()));
 
     spi_flash_op_lock();
 
@@ -141,9 +146,9 @@ void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu(void)
         // Scheduler hasn't been started yet, it means that spi_flash API is being
         // called from the 2nd stage bootloader or from user_start_cpu0, i.e. from
         // PRO CPU. APP CPU is either in reset or spinning inside user_start_cpu1,
-        // which is in IRAM. So it is safe to disable cache for the other_cpuid after
-        // esp_intr_noniram_disable.
+        // which is in IRAM. So it is safe to disable cache for the other_cpuid here.
         assert(other_cpuid == 1);
+        spi_flash_disable_cache(other_cpuid, &s_flash_op_cache_state[other_cpuid]);
     } else {
         // Temporarily raise current task priority to prevent a deadlock while
         // waiting for IPC task to start on the other CPU
@@ -152,8 +157,8 @@ void IRAM_ATTR spi_flash_disable_interrupts_caches_and_other_cpu(void)
         // Signal to the spi_flash_op_block_task on the other CPU that we need it to
         // disable cache there and block other tasks from executing.
         s_flash_op_can_start = false;
-        esp_err_t ret = esp_ipc_call(other_cpuid, &spi_flash_op_block_func, (void *) other_cpuid);
-        assert(ret == ESP_OK);
+        ESP_ERROR_CHECK(esp_ipc_call(other_cpuid, &spi_flash_op_block_func, (void *) other_cpuid));
+
         while (!s_flash_op_can_start) {
             // Busy loop and wait for spi_flash_op_block_func to disable cache
             // on the other CPU
@@ -319,7 +324,7 @@ static void IRAM_ATTR spi_flash_disable_cache(uint32_t cpuid, uint32_t *saved_st
     icache_state = Cache_Suspend_ICache() << 16;
     dcache_state = Cache_Suspend_DCache();
     *saved_state = icache_state | dcache_state;
-#elif CONFIG_IDF_TARGET_ESP32C3
+#elif CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
     uint32_t icache_state;
     icache_state = Cache_Suspend_ICache() << 16;
     *saved_state = icache_state;
@@ -345,7 +350,7 @@ static void IRAM_ATTR spi_flash_restore_cache(uint32_t cpuid, uint32_t saved_sta
 #elif CONFIG_IDF_TARGET_ESP32S3
     Cache_Resume_DCache(saved_state & 0xffff);
     Cache_Resume_ICache(saved_state >> 16);
-#elif CONFIG_IDF_TARGET_ESP32C3
+#elif CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
     Cache_Resume_ICache(saved_state >> 16);
 #endif
 }
@@ -359,7 +364,7 @@ IRAM_ATTR bool spi_flash_cache_enabled(void)
 #endif
 #elif CONFIG_IDF_TARGET_ESP32S2
     bool result = (REG_GET_BIT(EXTMEM_PRO_ICACHE_CTRL_REG, EXTMEM_PRO_ICACHE_ENABLE) != 0);
-#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+#elif CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
     bool result = (REG_GET_BIT(EXTMEM_ICACHE_CTRL_REG, EXTMEM_ICACHE_ENABLE) != 0);
 #endif
     return result;
@@ -474,7 +479,7 @@ esp_err_t esp_enable_cache_wrap(bool icache_wrap_enable, bool dcache_wrap_enable
     int i;
     bool flash_spiram_wrap_together, flash_support_wrap = true, spiram_support_wrap = true;
     uint32_t drom0_in_icache = 1;//always 1 in esp32s2
-#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32S3 || CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
     drom0_in_icache = 0;
 #endif
 
@@ -875,7 +880,7 @@ esp_err_t esp_enable_cache_wrap(bool icache_wrap_enable, bool dcache_wrap_enable
 }
 #endif
 
-#if CONFIG_IDF_TARGET_ESP32C3
+#if CONFIG_IDF_TARGET_ESP32C3 || CONFIG_IDF_TARGET_ESP32C6
 
 static IRAM_ATTR void esp_enable_cache_flash_wrap(bool icache)
 {
