@@ -163,20 +163,22 @@ if(CONFIG_SOC_SERIES_ESP32)
     ../../components/hal/i2c_hal.c
     )
 
-  zephyr_sources_ifdef(
-    CONFIG_ESP_SPIRAM
-    ../../components/esp_psram/esp_psram.c
-    ../../components/esp_hw_support/esp_memory_utils.c
-    ../../components/esp_psram/${CONFIG_SOC_SERIES}/esp_psram_impl_quad.c
-    ../../components/bootloader_support/bootloader_flash/src/bootloader_flash_config_${CONFIG_SOC_SERIES}.c
-    ../../components/bootloader_support/src/bootloader_common.c
-    ../../components/esp_hw_support/esp_gpio_reserve.c
-    ../../components/bootloader_support/src/bootloader_efuse.c
-    ../../components/esp_hw_support/port/${CONFIG_SOC_SERIES}/cache_sram_mmu.c
-    ../../components/esp_psram/${CONFIG_SOC_SERIES}/esp_psram_extram_cache.c
-    ../../components/esp_mm/cache_esp32.c
-    ../../components/spi_flash/flash_ops.c
-    )
+  if (CONFIG_ESP_SPIRAM)
+    zephyr_compile_definitions(CONFIG_SPIRAM)
+    zephyr_sources(
+      ../../components/esp_psram/esp_psram.c
+      ../../components/esp_hw_support/esp_memory_utils.c
+      ../../components/esp_psram/${CONFIG_SOC_SERIES}/esp_psram_impl_quad.c
+      ../../components/bootloader_support/bootloader_flash/src/bootloader_flash_config_${CONFIG_SOC_SERIES}.c
+      ../../components/bootloader_support/src/bootloader_common.c
+      ../../components/esp_hw_support/esp_gpio_reserve.c
+      ../../components/bootloader_support/src/bootloader_efuse.c
+      ../../components/esp_hw_support/port/${CONFIG_SOC_SERIES}/cache_sram_mmu.c
+      ../../components/esp_psram/${CONFIG_SOC_SERIES}/esp_psram_extram_cache.c
+      ../../components/esp_mm/cache_esp32.c
+      ../../components/spi_flash/flash_ops.c
+      )
+  endif()
 
   zephyr_sources_ifdef(
     CONFIG_UART_ESP32
@@ -371,6 +373,8 @@ if(CONFIG_SOC_SERIES_ESP32)
 
   ## WIFI definitions
   if (CONFIG_WIFI_ESP32)
+    zephyr_compile_definitions(CONFIG_ESP_WIFI_ENABLED)
+    zephyr_compile_definitions(CONFIG_SOC_WIFI_SUPPORTED)
     set(WPA_SUPPLICANT_COMPONENT_DIR "../../components/wpa_supplicant")
     #TODO: Additional WPA supplicant feature like Enterprise mode etc. are yet to be supported.
     set(WPA_SUPPLICANT_SRCS "../port/wifi/wpa_supplicant/os_xtensa.c"

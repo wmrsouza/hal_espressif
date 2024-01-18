@@ -199,6 +199,7 @@ if(CONFIG_SOC_SERIES_ESP32S3)
   zephyr_link_libraries("-Wl,--wrap=longjmp")
 
   if (CONFIG_ESP_SPIRAM)
+    zephyr_compile_definitions(CONFIG_SPIRAM)
     zephyr_sources(
       ../../components/esp_psram/esp_psram.c
       ../../components/esp_psram/mmu_psram_flash.c
@@ -342,6 +343,7 @@ if(CONFIG_SOC_SERIES_ESP32S3)
 
   ## shared WIFI/BT resources
   if (CONFIG_BT OR CONFIG_WIFI_ESP32)
+    zephyr_compile_definitions(CONFIG_ESP_PHY_ENABLE_USB)
     zephyr_sources(
       ../../components/esp_phy/src/phy_init.c
       ../../components/esp_phy/src/lib_printf.c
