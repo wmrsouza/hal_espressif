@@ -118,25 +118,31 @@ if(CONFIG_SOC_SERIES_ESP32S2)
 
   zephyr_sources_ifdef(
     CONFIG_SOC_FLASH_ESP32
-    ../../components/spi_flash/flash_ops.c
-    ../../components/spi_flash/esp_flash_api.c
     ../../components/bootloader_support/src/flash_encrypt.c
-    ../../components/spi_flash/flash_mmap.c
-    ../../components/hal/mmu_hal.c
-    ../../components/spi_flash/esp_flash_spi_init.c
+    ../../components/esp_hw_support/esp_gpio_reserve.c
     ../../components/hal/cache_hal.c
-    ../../components/spi_flash/spi_flash_os_func_noos.c
-    ../../components/spi_flash/memspi_host_driver.c
+    ../../components/hal/mmu_hal.c
+    ../../components/hal/spi_flash_encrypt_hal_iram.c
     ../../components/hal/spi_flash_hal.c
     ../../components/hal/spi_flash_hal_iram.c
     ../../components/hal/spi_flash_hal_gpspi.c
+    ../../components/spi_flash/esp_flash_api.c
+    ../../components/spi_flash/esp_flash_spi_init.c
+    ../../components/spi_flash/flash_mmap.c
+    ../../components/spi_flash/flash_ops.c
+    ../../components/spi_flash/spi_flash_os_func_noos.c
+    ../../components/spi_flash/memspi_host_driver.c
+    ../../components/spi_flash/spi_flash_chip_boya.c
     ../../components/spi_flash/spi_flash_chip_drivers.c
+    ../../components/spi_flash/spi_flash_chip_gd.c
     ../../components/spi_flash/spi_flash_chip_generic.c
-    ../../components/hal/spi_flash_encrypt_hal_iram.c
-    ../../components/esp_hw_support/esp_gpio_reserve.c
-    ../../components/bootloader_support/bootloader_flash/src/bootloader_flash.c
-    ../../components/bootloader_support/bootloader_flash/src/bootloader_flash_config_esp32s2.c
-    ../../components/bootloader_support/src/bootloader_efuse.c
+    ../../components/spi_flash/spi_flash_chip_issi.c
+    ../../components/spi_flash/spi_flash_chip_mxic.c
+    ../../components/spi_flash/spi_flash_chip_mxic_opi.c
+    ../../components/spi_flash/spi_flash_chip_th.c
+    ../../components/spi_flash/spi_flash_chip_winbond.c
+    ../../components/spi_flash/spi_flash_hpm_enable.c
+    ../../components/spi_flash/spi_flash_os_func_noos.c
     )
 
   zephyr_library_sources_ifdef(CONFIG_COUNTER_TMR_ESP32 ../../components/hal/timer_hal.c)
@@ -266,6 +272,11 @@ if(CONFIG_SOC_SERIES_ESP32S2)
     ../../components/soc/${CONFIG_SOC_SERIES}/gpio_periph.c
     ../../components/soc/${CONFIG_SOC_SERIES}/rtc_io_periph.c
 
+    ../../components/bootloader_support/bootloader_flash/src/flash_qio_mode.c
+    ../../components/bootloader_support/bootloader_flash/src/bootloader_flash.c
+    ../../components/bootloader_support/bootloader_flash/src/bootloader_flash_config_${CONFIG_SOC_SERIES}.c
+    ../../components/bootloader_support/src/bootloader_efuse.c
+
     ../../components/esp_hw_support/cpu.c
     ../../components/esp_hw_support/esp_clk.c
     ../../components/esp_hw_support/mac_addr.c
@@ -329,8 +340,7 @@ if(CONFIG_SOC_SERIES_ESP32S2)
 
   ## WIFI definitions
   if (CONFIG_WIFI_ESP32)
-    zephyr_compile_definitions(CONFIG_ESP_WIFI_ENABLED)
-    zephyr_compile_definitions(CONFIG_SOC_WIFI_SUPPORTED)
+
     zephyr_sources(
       src/wifi/esp_wifi_adapter.c
       ../../components/esp_phy/src/phy_init.c
@@ -506,25 +516,27 @@ if(CONFIG_SOC_SERIES_ESP32S2)
       ${CRYPTO_SRCS}
       )
 
-      zephyr_compile_definitions(
-        __ets__
-        ESP_SUPPLICANT
-        IEEE8021X_EAPOL
-        EAP_PEER_METHOD
-        EAP_MSCHAPv2
-        EAP_TTLS
-        EAP_TLS
-        EAP_PEAP
-        USE_WPA2_TASK
-        CONFIG_WPS
-        USE_WPS_TASK
-        CONFIG_ECC
-        CONFIG_IEEE80211W
-        CONFIG_SHA256
-        CONFIG_NO_RADIUS
-        CONFIG_CRYPTO_INTERNAL
-        )
+    zephyr_compile_definitions(
+      __ets__
+      ESP_SUPPLICANT
+      IEEE8021X_EAPOL
+      EAP_PEER_METHOD
+      EAP_MSCHAPv2
+      EAP_TTLS
+      EAP_TLS
+      EAP_PEAP
+      USE_WPA2_TASK
+      CONFIG_WPS
+      USE_WPS_TASK
+      CONFIG_ECC
+      CONFIG_IEEE80211W
+      CONFIG_SHA256
+      CONFIG_NO_RADIUS
+      CONFIG_CRYPTO_INTERNAL
+      )
 
+      zephyr_compile_definitions(CONFIG_ESP_WIFI_ENABLED)
+      zephyr_compile_definitions(CONFIG_SOC_WIFI_SUPPORTED)
       zephyr_compile_definitions_ifdef(CONFIG_ESP32_WIFI_MBEDTLS_CRYPTO CONFIG_CRYPTO_MBEDTLS)
       zephyr_compile_definitions_ifdef(CONFIG_ESP32_WIFI_ENABLE_WPA3_SAE CONFIG_WPA3_SAE)
       zephyr_compile_definitions_ifdef(CONFIG_ESP32_WIFI_ENABLE_WPA3_OWE_STA CONFIG_OWE_STA)
