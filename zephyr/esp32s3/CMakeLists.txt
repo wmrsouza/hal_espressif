@@ -221,6 +221,20 @@ if(CONFIG_SOC_SERIES_ESP32S3)
     ../../components/hal/gdma_hal.c
     )
 
+  zephyr_sources_ifdef(
+    CONFIG_ADC_ESP32
+    ../../components/hal/adc_hal.c
+    ../../components/hal/adc_hal_common.c
+    ../../components/driver/deprecated/adc_legacy.c
+    ../../components/esp_hw_support/adc_share_hw_ctrl.c
+    ../../components/hal/rtc_io_hal.c
+    ../../components/driver/gpio/rtc_io.c
+    ../../components/efuse/src/esp_efuse_api.c
+    ../../components/efuse/src/esp_efuse_utility.c
+    ../../components/efuse/${CONFIG_SOC_SERIES}/esp_efuse_rtc_calib.c
+    ../../components/efuse/${CONFIG_SOC_SERIES}/esp_efuse_utility.c
+    )
+
   zephyr_link_libraries("-Wl,--wrap=longjmp")
 
   if (CONFIG_ESP_SPIRAM)

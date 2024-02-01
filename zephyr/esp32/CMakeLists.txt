@@ -232,10 +232,12 @@ if(CONFIG_SOC_SERIES_ESP32)
   zephyr_sources_ifdef(
     CONFIG_ADC_ESP32
     ../../components/hal/adc_hal.c
+    ../../components/hal/adc_hal_common.c
     ../../components/driver/deprecated/adc_legacy.c
     ../../components/esp_hw_support/adc_share_hw_ctrl.c
     ../../components/hal/rtc_io_hal.c
     ../../components/driver/gpio/rtc_io.c
+    ../../components/hal/i2s_hal.c
     src/esp_adc_cal/esp_adc_cal.c
     )
 
