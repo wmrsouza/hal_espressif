@@ -251,7 +251,6 @@ if(CONFIG_SOC_SERIES_ESP32S31)
 
   zephyr_sources_ifdef(CONFIG_PULSE_IO_ESP32_RMT
     ../../components/esp_hal_rmt/rmt_hal.c
-    ../../components/esp_hal_gpio/gpio_hal.c
     ../../components/esp_driver_gpio/src/gpio.c
     ../../components/esp_driver_gpio/src/rtc_io.c
     ../../components/esp_hal_rmt/${CONFIG_SOC_SERIES}/rmt_periph.c
@@ -363,6 +362,7 @@ if(CONFIG_SOC_SERIES_ESP32S31)
     ../../components/esp_hal_ana_conv/temperature_sensor_hal.c
     ../../components/esp_hal_clock/${CONFIG_SOC_SERIES}/clk_tree_hal.c
     ../../components/esp_hal_gpio/${CONFIG_SOC_SERIES}/rtc_io_periph.c
+    ../../components/esp_hal_gpio/gpio_hal.c
     ../../components/esp_hal_gpio/rtc_io_hal.c
     ../../components/esp_hal_systimer/systimer_hal.c
     ../../components/esp_hal_wdt/wdt_hal_iram.c
